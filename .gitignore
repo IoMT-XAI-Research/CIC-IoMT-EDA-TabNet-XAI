@@ -1,0 +1,13 @@
+# Notebook & Python cache
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
+# Raw data
+data/raw/
+
+*.pcap
+*.pcapng
+
+*.log
+*.tmp
