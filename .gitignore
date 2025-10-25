@@ -3,11 +3,17 @@
 __pycache__/
 *.pyc
 
+artifacts/*
+
 # Raw data
 data/raw/
+data/interim/*
+data/processed/*.parquet
 
 *.pcap
 *.pcapng
-
+*.pt
 *.log
 *.tmp
+*ipynb_chechpoints/
+*.zip
