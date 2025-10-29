@@ -1,0 +1,35 @@
+# Stream Processing Configuration
+streaming:
+  # Kafka Settings
+  kafka: # veri nereden gelecek
+    bootstrap_servers: ["localhost:9092"] # kafka sunucunun adresi (nereden dinlenecek)
+    topic: "iomt_traffic" # hangi kanali dinleyeceksin
+    consumer_group: "iomt_analyzer" # ayni isi yapan tuketicilerin grup adi
+    auto_offset_reset: "latest" # en son mesajdan okumaya basla (gecmisi degil ani izle)
+    
+  # Data Processing (batch)
+  processing:
+    batch_size: 1000 # 1000 kayit gelince topluca isle
+    batch_timeout: 5  # 5 saniye gecerse elindekileri isle
+    window_size: 60   # 60 saniyelik analiz penceresi kullan
+    slide_interval: 10 # pencereyi 10 saniyede bir kaydir
+    
+  # Feature Engineering
+  features:
+    time_windows: [5, 15, 30, 60]  # seconds
+    statistical_features: ["mean", "std", "min", "max", "count"]
+    network_features: ["packet_rate", "byte_rate", "connection_count"]
+    
+  # Alerting
+  alerting:
+    threshold_confidence: 0.8 # model confidence %80'i gecerse alarm uret
+    alert_cooldown: 300  # ayni kaynak icin 5 dakika boyunca alarm uretme
+    notification_channels: ["email", "push", "webhook"] # email, mobil ve webhook ile alarmi gonder.
+    
+  # Performance
+  performance:
+    parallel_workers: 4 # 4 thread calistir
+    memory_limit: "4GB" # en fazla 4gb ram kullan
+    checkpoint_interval: 60  # 60 saniyede bir durumu kaydet
+
+

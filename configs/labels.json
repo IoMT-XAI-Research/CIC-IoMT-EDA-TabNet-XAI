@@ -1,0 +1,11 @@
+{
+  "Benign": 0,
+  "DoS": 1,
+  "DDoS": 2,
+  "ARP_Spoofing": 3,
+  "Recon": 4,
+  "Malformed": 5,
+  "MQTT_DoS": 6,
+  "MQTT_DDoS": 7
+}
+

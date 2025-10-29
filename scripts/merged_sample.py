@@ -3,15 +3,17 @@ import pandas as pd
 import glob
 import os
 
-DATA_ROOT = "data"          # senin yolun
+DATA_ROOT = "data"          
 OUT_DIR = "data/processed"
 os.makedirs(OUT_DIR, exist_ok=True)
 
-per_file_sample = 5000      # her dosyadan çekilecek örnek sayısı (dilediğini ayarla)
+per_file_sample = 5000      # her dosyadan cekilecek ornek sayisi
 
 csv_files = glob.glob(os.path.join(DATA_ROOT, "**", "*.csv"), recursive=True)
 samples = []
 meta = []
+
+# tum csv'ler uzerinde dongu yap: oku, ornekle, etiketle, biriktir
 for f in csv_files:
     try:
         df = pd.read_csv(f)
@@ -27,6 +29,7 @@ for f in csv_files:
     except Exception as e:
         print("FAILED", f, e)
 
+# tum mini porsiyonlari tek bir DataFrame de birlestir ve merged_sample.csv olarak kaydeder.
 if samples:
     merged = pd.concat(samples, ignore_index=True)
     out_path = os.path.join(OUT_DIR, "merged_sample.csv")
