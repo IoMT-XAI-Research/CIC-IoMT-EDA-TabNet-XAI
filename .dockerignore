@@ -1,0 +1,28 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Venv
+.venv/
+venv/
+ENV/
+
+# Git
+.git/
+.gitignore
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+
+# Data (mount from host instead)
+data/raw/
+data/interim/
+logs/
+artifacts/models/
+artifacts/results/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/

@@ -385,6 +385,18 @@ class FeatureEngineer:
             X = df_features
             y = None
         
+        # Handle NaNs produced by rolling/lag operations before selection/scaling
+        # Use median for numeric columns, mode for categorical if present
+        numeric_cols = X.select_dtypes(include=[np.number]).columns
+        for col in numeric_cols:
+            median_val = X[col].median()
+            X[col] = X[col].fillna(median_val)
+        non_numeric_cols = [c for c in X.columns if c not in numeric_cols]
+        for col in non_numeric_cols:
+            if X[col].isna().any():
+                mode_val = X[col].mode().iloc[0] if not X[col].mode().empty else 0
+                X[col] = X[col].fillna(mode_val)
+
         # Step 6: Feature selection
         if feature_selection and y is not None:
             X = self.select_features(X, y, method="mutual_info", k=100)

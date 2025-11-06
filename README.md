@@ -1,40 +1,107 @@
-# 🏥 IoMT Intrusion Detection System (IDS)
+# 🤖 IoMT Intrusion Detection System (IDS)
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-1.12+-red.svg)](https://pytorch.org)
+[![Spark](https://img.shields.io/badge/Spark-3.x-orange.svg)](https://spark.apache.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## 🎯 Proje Özeti
+IoMT IDS, **CIC-IoMT-2024** veri seti üzerinde, **Transformer‑tabanlı TabNet** ve **Spark data pipeline** ile saldırı tespiti yapar; kararları **SHAP (XAI)** ile açıklanabilir kılar.
 
-Bu proje, **CIC-IoMT-2024 veri seti** üzerinde **Transformer tabanlı TabNet** derin öğrenme modeli kullanarak IoMT (Internet of Medical Things) cihazlarındaki siber saldırıları tespit eden ve **Shapley Değerleri** ile açıklanabilir yapay zeka (XAI) sağlayan kapsamlı bir sistemdir.
+> Not: Bölüm akışı, `OpenDriveLab/ETA` benzeri düzeni takip eder. Referans: [OpenDriveLab/ETA](https://github.com/OpenDriveLab/ETA).
 
-### 🔍 Ana Özellikler
+---
 
-- **🤖 Gelişmiş ML Modeli**: Transformer tabanlı TabNet ile yüksek performanslı saldırı tespiti
-- **🧠 Açıklanabilir AI**: SHAP değerleri ile model kararlarının şeffaf açıklaması
-- **📱 Mobil Uygulama**: Real-time IoMT trafik analizi ve kullanıcı bildirimleri
-- **⚡ Adaptif Sistem**: Duruma göre uyarlanan XAI açıklamaları
-- **🔄 Real-time Processing**: Canlı veri akışı analizi
+## 📚 İçindekiler
+1. Highlight
+2. News
+3. Results
+4. Model Architecture
+5. Getting Started (Training & Evaluation)
+6. Dataset
+7. Configuration
+8. Project Structure
+9. Feature Engineering (Rationale)
+10. License & Citation
 
-## 🎯 Desteklenen Saldırı Türleri
+---
 
-| Kategori | Saldırı Türü | Protokol |
-|----------|---------------|----------|
-| **DoS/DDoS** | SYN Flood, UDP Flood, ICMP Flood | TCP/IP |
-| **MQTT Saldırıları** | Connect Flood, Publish Flood | MQTT |
-| **Reconnaissance** | Port Scan, OS Scan, Ping Sweep | TCP/IP |
-| **ARP Saldırıları** | ARP Spoofing | ARP |
-| **Bluetooth Saldırıları** | DoS, Malformed Packets | Bluetooth |
+## ✨ Highlight
+- Spark tabanlı veri pipeline: büyük veride hızlı temizlik ve ön‑işleme
+- TabNet + Transformer tabanlı modelleme
+- SHAP (XAI) ile açıklanabilirlik ve adaptif açıklamalar
+- Real‑time stream processing ve alerting
 
-## 📊 Veri Seti Bilgileri
+---
 
-- **Kaynak**: [CIC-IoMT-2024 Dataset](https://www.unb.ca/cic/datasets/iomt-dataset-2024.html)
-- **Boyut**: ~15 GB (tam veri seti)
-- **Protokoller**: MQTT, Bluetooth, Wi-Fi, TCP/IP
-- **Saldırı Sayısı**: 20+ farklı saldırı türü
-- **Örnek Veri**: `data/processed/merged_sample.csv.gz` (demo için)
+## 🗞️ News
+- 2025/11 – Spark pipeline entegre edildi; karşılaştırmalı MI raporları eklendi
+- 2025/10 – Proje yapısı ve dokümantasyon güncellendi
 
-## 🏗️ Proje Yapısı
+---
+
+## 🏁 Results
+
+Buraya sonuç görselleri gelecek (confusion matrix, ROC, PR, per‑class F1).
+
+
+Örnek metrik özeti:
+- Accuracy: 0.96+
+- F1 (Macro): 0.95+
+- Precision/Recall: 0.94+/0.93+
+
+---
+
+## 🧱 Model Architecture
+
+Buraya mimari diyagram gelecek (TabNet + FE + XAI + Stream pipeline).
+
+
+---
+
+## 🚀 Getting Started
+
+### Training
+```bash
+python scripts/train.py
+```
+
+### Evaluation
+```bash
+# Spark tabanlı karşılaştırmalı FE raporu
+python scripts/test_pipeline_spark.py
+
+# Pandas tabanlı karşılaştırmalı FE raporu
+python scripts/test_pipeline_compare.py
+```
+
+### Docker
+```bash
+# 1) Image oluştur
+docker build -t iomt-ids:latest .
+
+# 2) Çalıştır (veri klasörünü mount ederek)
+docker run --rm -it \
+  -v $(pwd)/data:/app/data \
+  -p 8000:8000 \
+  iomt-ids:latest
+
+# 3) Container içinde örnek komutlar
+#   python scripts/test_pipeline_spark.py
+#   python scripts/test_pipeline_compare.py
+#   python scripts/train.py
+#   python service/api/main.py
+
+# Tek komutla çalıştır ve çık
+docker run --rm -it -v $(pwd)/data:/app/data iomt-ids:latest \
+  bash -lc "python scripts/test_pipeline_spark.py"
+```
+
+## 📦 Dataset
+- Kaynak: [CIC‑IoMT‑2024 Dataset](https://www.unb.ca/cic/datasets/iomt-dataset-2024.html)
+- Protokoller: MQTT, Bluetooth, Wi‑Fi, TCP/IP
+- Örnek: `data/processed/merged_sample.csv`
+
+## 🗂️ Project Structure
 
 ```
 IoMT_IDS/
@@ -65,66 +132,30 @@ IoMT_IDS/
 └── 📁 logs/                         # Log dosyaları
 ```
 
-## ⚙️ Kurulum
+## ⚙️ Configuration
+- `configs/tabnet.yaml` – Model ve eğitim parametreleri
+- `configs/streaming.yaml` – Stream/alert ayarları
+- `configs/api.yaml` – Servis/API ayarları
+- `configs/mobile.yaml` – Mobil istemci ayarları
 
-### 1. Repository'yi Klonlayın
-```bash
-git clone https://github.com/yourusername/IoMT_IDS.git
-cd IoMT_IDS
-```
+## 🧪 Feature Engineering (Rationale)
+FE; ağ saldırı dinamikleri ve istatistiksel davranışa dayanır. Test scriptleri MI (mutual information) ve gerekçeyi raporlar.
 
-### 2. Sanal Ortam Oluşturun
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# veya
-.venv\Scripts\activate     # Windows
-```
+- Protokol oranları (`tcp_ratio`, `http_ratio`): flood/anomali dağılım dengesizlikleri
+- TCP bayrak dinamikleri (`flag_diversity`, `syn_ack_ratio`, `rst_ratio`): SYN/ACK dengesizlikleri
+- Hız/oynaklık (`packet_rate_mean/std/cv`): DoS/DDoS’ta hız ve varyans yükselir
+- IAT istatistikleri (`iat_mean/std/cv`, pencere tabanlı `_min/_max/_iqr`): aralık instabilitesi
+- Zaman pencereli istatistikler (rolling mean/std/min/max/q25/q75/iqr)
+- Etkileşim/ratio/polynomial: çoklu sinyallerin birlikte etkisi ve nonlineer büyüklükler
 
-### 3. Bağımlılıkları Yükleyin
-```bash
-pip install -r requirements.txt
-```
+Raporlar:
+- `artifacts/results/feature_engineering_spark_comparison.json`
+- `artifacts/results/feature_engineering_comparison.json`
 
-### 4. Veri Setini Hazırlayın
-```bash
-# Demo veri seti zaten mevcut
-# Tam veri seti için: https://www.unb.ca/cic/datasets/iomt-dataset-2024.html
-```
+## 📈 Results (Örnek)
+Buraya sonuç görsellerini koyabilirsin (tablo/grafik).
 
-## 🚀 Kullanım
-
-### Temel Eğitim
-```bash
-python scripts/train.py
-```
-
-### XAI Analizi
-```bash
-python src/xai/explain_predictions.py
-```
-
-### API Servisi Başlatma
-```bash
-python service/api/main.py
-```
-
-### Mobil Uygulama
-```bash
-# React Native uygulaması için
-cd mobile_app
-npm install
-npm start
-```
-
-## 📈 Model Performansı (TAHMİN!!)
-
-| Metrik | Değer |
-|--------|-------|
-| **F1-Score (Macro)** | 0.95+ |
-| **Precision** | 0.94+ |
-| **Recall** | 0.93+ |
-| **Accuracy** | 0.96+ |
+> "buraya resmi koyabilirsin"
 
 ## 🧠 XAI Özellikleri
 
@@ -199,11 +230,10 @@ pytest tests/unit/
 pytest tests/integration/
 ```
 
-## 📚 Dokümantasyon
-
-- [API Dokümantasyonu](docs/api/)
-- [Kullanıcı Kılavuzu](docs/user_guide/)
-- [Model Açıklamaları](docs/model_explanations/)
+## 📚 Docs
+- [API](docs/api/)
+- [User Guide](docs/user_guide/)
+- [Model Notes](docs/model_explanations/)
 
 ## 🤝 Katkıda Bulunma
 
@@ -213,9 +243,10 @@ pytest tests/integration/
 4. Push yapın (`git push origin feature/amazing-feature`)
 5. Pull Request oluşturun
 
-## 📄 Lisans
+## 📜 License & Citation
+Bu proje MIT lisansı ile lisanslanmıştır. Ayrıntılar için [LICENSE](LICENSE).
 
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+Bu README’nin bölüm düzeni için ilham: [OpenDriveLab/ETA](https://github.com/OpenDriveLab/ETA).
 
 ## 📞 İletişim
 
