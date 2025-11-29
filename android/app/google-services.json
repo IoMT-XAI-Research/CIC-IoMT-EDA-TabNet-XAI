@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "422547165655",
+    "project_id": "iomtids",
+    "storage_bucket": "iomtids.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:422547165655:android:d0cde05918d52b53ee7b92",
+        "android_client_info": {
+          "package_name": "com.example.iomt_ids"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSdaRg-46LGi6kQCm2mKxzBtXP8dkMjec"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
