@@ -38,3 +38,21 @@ def isolate_device(device_id: int, db: Session = Depends(dependencies.get_db), c
     db.commit()
     db.refresh(device)
     return device
+
+# --- BURAYI KOPYALA ---
+from pydantic import BaseModel
+
+class StatusUpdate(BaseModel):
+    status: str
+
+@router.put("/{device_id}/status")
+def update_device_status(device_id: int, status_update: StatusUpdate, db: Session = Depends(get_db)):
+    device = db.query(models.Device).filter(models.Device.id == device_id).first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Cihaz bulunamadı")
+    
+    device.status = status_update.status
+    db.commit()
+    db.refresh(device)
+    return {"message": f"Cihaz {device.name} durumu '{device.status}' olarak güncellendi!", "device": device}
+# --- BİTİŞ ---
