@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from .. import models, schemas, dependencies
+from pydantic import BaseModel
+
+from app import models
+from app.database import get_db
 
 router = APIRouter(
     prefix="/devices",
