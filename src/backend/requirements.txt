@@ -7,4 +7,4 @@ passlib[bcrypt]
 pydantic
 python-multipart
 gunicorn
-bcrypt
+bcrypt==3.2.2
