@@ -1,28 +1,10 @@
-# Byte-compiled / cache
-__pycache__/
-*.py[cod]
-*.pyo
-
-# Venv
-.venv/
 venv/
-ENV/
-
-# Git
+temp_venv/
 .git/
-.gitignore
-
-# OS/editor
-.DS_Store
-.idea/
-.vscode/
-
-# Data (mount from host instead)
+__pycache__/
 data/raw/
-data/interim/
-logs/
-artifacts/models/
-artifacts/results/
-
-# Notebooks checkpoints
-.ipynb_checkpoints/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.env

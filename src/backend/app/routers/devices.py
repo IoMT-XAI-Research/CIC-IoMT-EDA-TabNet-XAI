@@ -1,0 +1,40 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+from .. import models, schemas, dependencies
+
+router = APIRouter(
+    prefix="/devices",
+    tags=["devices"]
+)
+
+@router.get("/", response_model=List[schemas.DeviceResponse])
+def read_devices(skip: int = 0, limit: int = 100, db: Session = Depends(dependencies.get_db), current_user: models.User = Depends(dependencies.get_current_user)):
+    # Enforce hospital isolation
+    devices = db.query(models.Device).filter(models.Device.hospital_id == current_user.hospital_id).offset(skip).limit(limit).all()
+    return devices
+
+@router.post("/{device_id}/isolate", response_model=schemas.DeviceResponse)
+def isolate_device(device_id: int, db: Session = Depends(dependencies.get_db), current_user: models.User = Depends(dependencies.get_current_user)):
+    # Check permissions
+    if current_user.role != models.UserRole.TECH_STAFF:
+        raise HTTPException(status_code=403, detail="Not authorized to isolate devices")
+
+    # Enforce hospital isolation
+    device = db.query(models.Device).filter(models.Device.id == device_id, models.Device.hospital_id == current_user.hospital_id).first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    
+    device.status = models.DeviceStatus.ISOLATED
+    
+    # Create Isolation Event
+    event = models.Event(
+        device_id=device.id,
+        type=models.EventType.ISOLATION,
+        message=f"Device {device.name} isolated by {current_user.email}",
+        hospital_id=current_user.hospital_id
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(device)
+    return device

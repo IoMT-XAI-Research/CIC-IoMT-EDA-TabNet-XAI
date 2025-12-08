@@ -16,6 +16,8 @@ import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 import shap
+import joblib
+import zipfile
 
 def train_test_run():
     print("===============================================================")
@@ -54,7 +56,8 @@ def train_test_run():
     df_test_spark = test_loader.preprocess(df_test_spark)
 
     # Sample 10%
-    fraction = 0.10
+    # Sample 1% for speed
+    fraction = 0.01
     print(f"\n[STEP 3] Sampling {fraction*100}% of data...")
     
     df_train_sampled = df_train_spark.sample(withReplacement=False, fraction=fraction, seed=42)
@@ -160,8 +163,8 @@ def train_test_run():
         eval_set=[(X_train, y_train), (X_val, y_val)],
         eval_name=['train', 'valid'],
         eval_metric=['accuracy'],
-        max_epochs=50,
-        patience=10,
+        max_epochs=1,
+        patience=1,
         batch_size=1024, 
         virtual_batch_size=128,
         num_workers=0,
@@ -196,8 +199,21 @@ def train_test_run():
     plt.savefig(save_path)
     print(f"[INFO] Confusion Matrix saved to: {save_path}")
 
+    # FIX 4: Save Model and Encoders (Moved before SHAP)
+    print("\n[STEP 10] Saving Model and Artifacts...")
+    
+    # Save TabNet Model
+    model_save_path = os.path.join(artifacts_dir, "tabnet_model")
+    clf.save_model(model_save_path)
+    print(f"[INFO] Model saved to: {model_save_path}.zip")
+    
+    # Save Label Encoders and Feature Names
+    joblib.dump(label_encoders, os.path.join(artifacts_dir, "label_encoders.pkl"))
+    joblib.dump(feature_names, os.path.join(artifacts_dir, "feature_names.pkl"))
+    print(f"[INFO] Encoders and Feature Names saved to artifacts/")
+
     # FIX 3: SHAP Visualization
-    print("\n[STEP 10] Generating SHAP Explanation (Sampled)...")
+    print("\n[STEP 11] Generating SHAP Explanation (Sampled)...")
     
     # Sample 100 random instances from Test set for SHAP
     # Ensure we don't sample more than available

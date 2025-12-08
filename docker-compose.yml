@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: iomt_backend
+    command: uvicorn src.backend.app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./data:/app/data
+      - ./src:/app/src
+    environment:
+      - DATABASE_URL=sqlite:///./src/backend/sql_app.db # Or use a postgres service if needed, but keeping simple for now
+
+  simulator:
+    build: .
+    container_name: iomt_simulator
+    depends_on:
+      - backend
+    command: python scripts/simulate_traffic.py
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./data:/app/data
+      - ./scripts:/app/scripts
+    environment:
+      - BACKEND_URL=http://backend:8000/ws/internal/report-attack
