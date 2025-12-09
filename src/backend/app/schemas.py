@@ -64,6 +64,11 @@ class AnalysisResponse(BaseModel):
     xai_force_plot: XAIForcePlot
     feature_importance_list: List[FeatureImportance]
 
+class TrafficPredictionRequest(BaseModel):
+    hospital_id: int
+    device_id: int
+    features: Dict[str, Any]
+
 # Event Schemas
 class EventBase(BaseModel):
     type: EventType

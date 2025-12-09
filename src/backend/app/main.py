@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import auth, devices, analysis, websocket
+from .routers import auth, devices, analysis, websocket, prediction
+from .services.ai_engine import ai_engine
 from app.database import SessionLocal
 from app import models
 
@@ -9,6 +10,11 @@ from app import models
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="IoMT IDS Backend")
+
+# Initialize AI Engine on Startup
+@app.on_event("startup")
+async def startup_event():
+    ai_engine.load_model()
 
 # --- BAŞLANGIÇ: OTOMATİK VERİ YÜKLEME ---
 @app.on_event("startup")
@@ -53,6 +59,7 @@ app.include_router(auth.router)
 app.include_router(devices.router)
 app.include_router(analysis.router)
 app.include_router(websocket.router)
+app.include_router(prediction.router)
 
 @app.get("/")
 def read_root():
