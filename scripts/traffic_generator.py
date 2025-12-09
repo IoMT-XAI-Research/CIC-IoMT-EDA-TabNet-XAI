@@ -7,7 +7,7 @@ import requests
 import joblib
 
 # Configuration
-BACKEND_URL = "https://iomt-ids-backend.onrender.com/predict/traffic" # Render URL
+BACKEND_URL = "https://iomt-ids-backend.onrender.com/predict" # Render URL
 # BACKEND_URL = "http://localhost:8000/predict/traffic" # Local URL for testing
 
 DATA_DIR = "data/raw/WiFi_and_MQTT/test"
