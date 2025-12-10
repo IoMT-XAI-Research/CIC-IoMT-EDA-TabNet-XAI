@@ -14,6 +14,11 @@ pwd_context = CryptContext(
     deprecated="auto",
 )
 
+import logging
+logging.getLogger("uvicorn.error").info(
+    f"[AUTH] Using hash schemes: {pwd_context.schemes()}"
+)
+
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
