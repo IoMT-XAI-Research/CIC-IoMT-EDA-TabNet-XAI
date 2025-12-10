@@ -135,7 +135,6 @@ data/interim/
 artifacts/models/*.zip
 artifacts/results/
 logs/*.log
-*.pkl
 *.joblib
 
 # IDE
