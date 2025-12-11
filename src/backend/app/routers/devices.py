@@ -1,45 +1,34 @@
+# src/backend/app/routers/devices.py
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 
-from app import models, schemas, dependencies   # 🔹 Modeller, şemalar, current_user
-from app.database import get_db                 # 🔹 DB session
+from app import models, schemas, dependencies   # 🔹 modeller + şemalar + current_user
+from app.database import get_db                 # 🔹 ortak get_db
 
 router = APIRouter(
     prefix="/devices",
     tags=["devices"]
 )
 
-# -------------------------------------------------------------------
-# 1) YENİ: Cihaz oluşturma endpoint’i  (POST /devices/)
-# -------------------------------------------------------------------
+# --- 1) Cihaz oluşturma endpoint'i (YENİ) ---
 @router.post("/", response_model=schemas.DeviceResponse)
 def create_device(
     payload: schemas.DeviceCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(dependencies.get_current_user),
 ):
-    """
-    Giriş yapan kullanıcının hastanesine bağlı yeni bir cihaz oluşturur.
-
-    Body:
-      - name: Cihaz adı
-      - ip_address: Cihazın IP adresi (string)
-
-    Not:
-      - Cihazın hospital_id’si, current_user.hospital_id olarak set edilir.
-      - Başlangıçta status: SAFE, last_risk_score: 0.0 atanır.
-    """
-
-    # İstersen sadece teknik personelin cihaz oluşturmasına izin verelim:
+    # Sadece TECH_STAFF yeni cihaz ekleyebilsin
     if current_user.role != models.UserRole.TECH_STAFF:
         raise HTTPException(status_code=403, detail="Not authorized to create devices")
 
+    # Yeni cihazı, kullanıcının kendi hastanesine bağla
     device = models.Device(
         name=payload.name,
         ip_address=payload.ip_address,
-        status=models.DeviceStatus.SAFE,
+        status=models.DeviceStatus.SAFE,   # Enum kullanıyoruz
         last_risk_score=0.0,
         hospital_id=current_user.hospital_id,
     )
@@ -47,12 +36,11 @@ def create_device(
     db.add(device)
     db.commit()
     db.refresh(device)
+
     return device
 
 
-# -------------------------------------------------------------------
-# 2) Cihazları listeleme  (GET /devices/)
-# -------------------------------------------------------------------
+# --- 2) Cihazları listeleme ---
 @router.get("/", response_model=List[schemas.DeviceResponse])
 def read_devices(
     skip: int = 0,
@@ -60,7 +48,7 @@ def read_devices(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(dependencies.get_current_user),
 ):
-    # Enforce hospital isolation
+    # Kullanıcının hastanesine ait cihazlar
     devices = (
         db.query(models.Device)
         .filter(models.Device.hospital_id == current_user.hospital_id)
@@ -71,20 +59,18 @@ def read_devices(
     return devices
 
 
-# -------------------------------------------------------------------
-# 3) Cihaz izolasyonu  (POST /devices/{device_id}/isolate)
-# -------------------------------------------------------------------
+# --- 3) Cihaz izole etme ---
 @router.post("/{device_id}/isolate", response_model=schemas.DeviceResponse)
 def isolate_device(
     device_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(dependencies.get_current_user),
 ):
-    # Check permissions
+    # Yetki kontrolü
     if current_user.role != models.UserRole.TECH_STAFF:
         raise HTTPException(status_code=403, detail="Not authorized to isolate devices")
 
-    # Enforce hospital isolation
+    # Aynı hastaneye ait cihaz mı?
     device = (
         db.query(models.Device)
         .filter(
@@ -98,7 +84,7 @@ def isolate_device(
 
     device.status = models.DeviceStatus.ISOLATED
 
-    # Create Isolation Event
+    # Event kaydı (isteğe bağlı ama güzel durur)
     event = models.Event(
         device_id=device.id,
         type=models.EventType.ISOLATION,
@@ -108,12 +94,11 @@ def isolate_device(
     db.add(event)
     db.commit()
     db.refresh(device)
+
     return device
 
 
-# -------------------------------------------------------------------
-# 4) Cihaz durumunu güncelleme  (PUT /devices/{device_id}/status)
-# -------------------------------------------------------------------
+# --- 4) Cihaz durumunu manuel güncelleme ---
 class StatusUpdate(BaseModel):
     status: str
 
