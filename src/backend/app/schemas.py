@@ -29,13 +29,27 @@ class UserResponse(UserBase):
     class Config:
         orm_mode = True
 
+# Hospital Schemas
+class HospitalBase(BaseModel):
+    name: str
+    unique_code: str
+
+class HospitalCreate(HospitalBase):
+    pass
+
+class HospitalResponse(HospitalBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
 # Device Schemas
 class DeviceBase(BaseModel):
     name: str
     ip_address: str
 
 class DeviceCreate(DeviceBase):
-    pass
+    hospital_unique_code: str
 
 class DeviceResponse(DeviceBase):
     id: int

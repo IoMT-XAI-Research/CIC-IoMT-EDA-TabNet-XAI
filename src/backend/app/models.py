@@ -24,7 +24,7 @@ class Hospital(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
-    code = Column(String, unique=True, index=True)
+    unique_code = Column(String, unique=True, index=True)
 
     users = relationship("User", back_populates="hospital")
     devices = relationship("Device", back_populates="hospital")

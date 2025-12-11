@@ -9,13 +9,13 @@ db = SessionLocal()
 
 def seed_data():
     # 1. Önce Hastane Var mı Kontrol Et
-    hospital = db.query(models.Hospital).filter(models.Hospital.code == "HST-001").first()
+    hospital = db.query(models.Hospital).filter(models.Hospital.unique_code == "HST-001").first()
     
     if not hospital:
         print("🏥 Hastane oluşturuluyor...")
         hospital = models.Hospital(
             name="Merkez Şehir Hastanesi",
-            code="HST-001"
+            unique_code="HST-001"
         )
         db.add(hospital)
         db.commit()

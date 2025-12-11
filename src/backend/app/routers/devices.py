@@ -17,20 +17,20 @@ router = APIRouter(
 @router.post("/", response_model=schemas.DeviceResponse)
 def create_device(
     payload: schemas.DeviceCreate,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(dependencies.get_current_user),
+    db: Session = Depends(get_db)
 ):
-    # Sadece TECH_STAFF yeni cihaz ekleyebilsin
-    if current_user.role != models.UserRole.TECH_STAFF:
-        raise HTTPException(status_code=403, detail="Not authorized to create devices")
+    # Lookup Hospital by unique_code
+    hospital = db.query(models.Hospital).filter(models.Hospital.unique_code == payload.hospital_unique_code).first()
+    if not hospital:
+        raise HTTPException(status_code=404, detail="Hospital not found with provided code")
 
-    # Yeni cihazı, kullanıcının kendi hastanesine bağla
+    # Create new device linked to this hospital
     device = models.Device(
         name=payload.name,
         ip_address=payload.ip_address,
-        status=models.DeviceStatus.SAFE,   # Enum kullanıyoruz
+        status=models.DeviceStatus.SAFE,
         last_risk_score=0.0,
-        hospital_id=current_user.hospital_id,
+        hospital_id=hospital.id,
     )
 
     db.add(device)
@@ -43,15 +43,19 @@ def create_device(
 # --- 2) Cihazları listeleme ---
 @router.get("/", response_model=List[schemas.DeviceResponse])
 def read_devices(
+    hospital_unique_code: str,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(dependencies.get_current_user),
+    db: Session = Depends(get_db)
 ):
-    # Kullanıcının hastanesine ait cihazlar
+    # Lookup Hospital first
+    hospital = db.query(models.Hospital).filter(models.Hospital.unique_code == hospital_unique_code).first()
+    if not hospital:
+        return [] # Or raise 404? Empty list seems appropriate for "no devices visible"
+
     devices = (
         db.query(models.Device)
-        .filter(models.Device.hospital_id == current_user.hospital_id)
+        .filter(models.Device.hospital_id == hospital.id)
         .offset(skip)
         .limit(limit)
         .all()

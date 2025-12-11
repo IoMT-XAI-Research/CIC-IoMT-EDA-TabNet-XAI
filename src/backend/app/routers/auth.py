@@ -23,7 +23,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(dependencies.get_db
     # 1) Hastaneyi bul veya yoksa oluştur
     db_hospital = (
         db.query(models.Hospital)
-        .filter(models.Hospital.code == user.hospital_code)
+        .filter(models.Hospital.unique_code == user.hospital_code)
         .first()
     )
 
@@ -31,7 +31,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(dependencies.get_db
         # Demo için: hospital_code yoksa otomatik hastane oluştur
         db_hospital = models.Hospital(
             name="Default Hospital",
-            code=user.hospital_code,
+            unique_code=user.hospital_code,
         )
         db.add(db_hospital)
         db.commit()
