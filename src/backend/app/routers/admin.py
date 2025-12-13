@@ -80,3 +80,20 @@ def seed_data(db: Session = Depends(database.get_db)):
     db.commit()
     
     return {"message": "Database seeded successfully", "user": email}
+
+@router.delete("/database", status_code=status.HTTP_200_OK)
+def reset_database(db: Session = Depends(database.get_db)):
+    """
+    Resets the database:
+    1. Drops all tables
+    2. Recreates all tables
+    3. Seeds initial data
+    """
+    # Drop all tables
+    database.Base.metadata.drop_all(bind=database.engine)
+    
+    # Re-create all tables
+    database.Base.metadata.create_all(bind=database.engine)
+    
+    # Seed data
+    return seed_data(db)
