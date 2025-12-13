@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import auth, devices, analysis, websocket, prediction, hospitals
+from .routers import auth, devices, analysis, websocket, prediction, hospitals, admin
 from .services.ai_engine import ai_engine
 from app.database import SessionLocal
 from app import models
@@ -61,6 +61,7 @@ app.include_router(analysis.router)
 app.include_router(websocket.router)
 app.include_router(prediction.router)
 app.include_router(hospitals.router)
+app.include_router(admin.router)
 
 @app.get("/")
 def read_root():

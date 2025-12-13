@@ -46,12 +46,22 @@ def read_devices(
     hospital_unique_code: str,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(dependencies.get_current_user)
 ):
     # Lookup Hospital first
     hospital = db.query(models.Hospital).filter(models.Hospital.unique_code == hospital_unique_code).first()
     if not hospital:
-        return [] # Or raise 404? Empty list seems appropriate for "no devices visible"
+        return [] 
+
+    # SECURITY CHECK: Ensure the requesting user OWNS this hospital
+    if hospital.owner_id != current_user.id:
+        # Optionally checking if user is "employed" there (hospital_id) could be another case,
+        # but the requirement says "Group structure" / "Owns", so we enforce ownership.
+        # If TECH_STAFF needs access, we might check `current_user.hospital_id == hospital.id` too.
+        # For now, let's allow OWNER or EMPLOYEE.
+        if current_user.hospital_id != hospital.id:
+             raise HTTPException(status_code=403, detail="Not authorized to view devices for this hospital")
 
     devices = (
         db.query(models.Device)

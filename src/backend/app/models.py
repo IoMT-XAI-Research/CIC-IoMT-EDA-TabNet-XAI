@@ -25,8 +25,10 @@ class Hospital(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     unique_code = Column(String, unique=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id")) # New: Owner
 
-    users = relationship("User", back_populates="hospital")
+    owner = relationship("User", back_populates="owned_hospitals", foreign_keys=[owner_id])
+    users = relationship("User", back_populates="hospital", foreign_keys="User.hospital_id")
     devices = relationship("Device", back_populates="hospital")
     events = relationship("Event", back_populates="hospital")
 
@@ -39,7 +41,8 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.TECH_STAFF)
     hospital_id = Column(Integer, ForeignKey("hospitals.id"))
 
-    hospital = relationship("Hospital", back_populates="users")
+    hospital = relationship("Hospital", back_populates="users", foreign_keys=[hospital_id])
+    owned_hospitals = relationship("Hospital", back_populates="owner", foreign_keys="Hospital.owner_id") # New linkage
 
 class Device(Base):
     __tablename__ = "devices"
