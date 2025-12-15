@@ -19,12 +19,12 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    hospital_code: str
+    hospital_code: Optional[str] = None
 
 class UserResponse(UserBase):
     id: int
     role: UserRole
-    hospital_id: int
+    hospital_id: Optional[int] = None
 
     class Config:
         orm_mode = True

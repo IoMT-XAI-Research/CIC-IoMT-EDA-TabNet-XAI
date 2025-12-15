@@ -39,7 +39,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password_hash = Column(String)
     role = Column(Enum(UserRole), default=UserRole.TECH_STAFF)
-    hospital_id = Column(Integer, ForeignKey("hospitals.id"))
+    hospital_id = Column(Integer, ForeignKey("hospitals.id"), nullable=True)
 
     hospital = relationship("Hospital", back_populates="users", foreign_keys=[hospital_id])
     owned_hospitals = relationship("Hospital", back_populates="owner", foreign_keys="Hospital.owner_id", cascade="all, delete-orphan") # New linkage

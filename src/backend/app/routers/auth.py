@@ -16,28 +16,24 @@ router = APIRouter(
 def register(user: schemas.UserCreate, db: Session = Depends(dependencies.get_db)):
     """
     Yeni kullanıcı kaydı:
-    - hospital_code ile hastaneyi bulur (yoksa otomatik oluşturur)
-    - email daha önce alınmışsa 400 döner
-    - şifreyi hashleyip User kaydı oluşturur
+    - hospital_code OPSİYONEL.
+    - Eğer varsa, hastaneye bağlar (STAFF için).
+    - Yoksa, bağımsız kullanıcı oluşturur (ADMIN için ideal).
     """
-    # 1) Hastaneyi bul veya yoksa oluştur
-    db_hospital = (
-        db.query(models.Hospital)
-        .filter(models.Hospital.unique_code == user.hospital_code)
-        .first()
-    )
-
-    if db_hospital is None:
-        # Demo için: hospital_code yoksa otomatik hastane oluştur
-        db_hospital = models.Hospital(
-            name="Default Hospital",
-            unique_code=user.hospital_code,
+    hospital_id = None
+    
+    # 1) Hastane Kodu varsa kontrol et
+    if user.hospital_code:
+        db_hospital = (
+            db.query(models.Hospital)
+            .filter(models.Hospital.unique_code == user.hospital_code)
+            .first()
         )
-        db.add(db_hospital)
-        db.commit()
-        db.refresh(db_hospital)
+        if not db_hospital:
+            raise HTTPException(status_code=400, detail="Invalid hospital code")
+        hospital_id = db_hospital.id
 
-    # 2) Email daha önce alınmış mı?
+    # 2) Email kontrolü
     existing_user = (
         db.query(models.User)
         .filter(models.User.email == user.email)
@@ -49,13 +45,13 @@ def register(user: schemas.UserCreate, db: Session = Depends(dependencies.get_db
             detail="Email already registered",
         )
 
-    # 3) Şifreyi hashle ve kullanıcıyı kaydet
+    # 3) Kullanıcı oluştur
     hashed_password = auth.get_password_hash(user.password)
 
     db_user = models.User(
         email=user.email,
         password_hash=hashed_password,
-        hospital_id=db_hospital.id,
+        hospital_id=hospital_id, # Can be None
     )
     db.add(db_user)
     db.commit()
