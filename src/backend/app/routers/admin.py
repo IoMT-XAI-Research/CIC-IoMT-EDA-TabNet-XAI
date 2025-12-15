@@ -81,13 +81,13 @@ def seed_data(db: Session = Depends(database.get_db)):
     
     return {"message": "Database seeded successfully", "user": email}
 
-@router.delete("/database", status_code=status.HTTP_200_OK)
+@router.delete("/reset-db", status_code=status.HTTP_200_OK)
 def reset_database(db: Session = Depends(database.get_db)):
     """
-    Resets the database:
+    Resets the database completely:
     1. Drops all tables
     2. Recreates all tables
-    3. Seeds initial data
+    3. Leaves database empty (No seeding)
     """
     # Drop all tables
     database.Base.metadata.drop_all(bind=database.engine)
@@ -95,5 +95,4 @@ def reset_database(db: Session = Depends(database.get_db)):
     # Re-create all tables
     database.Base.metadata.create_all(bind=database.engine)
     
-    # Seed data
-    return seed_data(db)
+    return {"message": "Database successfully reset and wiped clean."}

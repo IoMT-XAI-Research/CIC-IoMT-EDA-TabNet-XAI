@@ -29,7 +29,7 @@ class Hospital(Base):
 
     owner = relationship("User", back_populates="owned_hospitals", foreign_keys=[owner_id])
     users = relationship("User", back_populates="hospital", foreign_keys="User.hospital_id")
-    devices = relationship("Device", back_populates="hospital")
+    devices = relationship("Device", back_populates="hospital", cascade="all, delete-orphan")
     events = relationship("Event", back_populates="hospital")
 
 class User(Base):
@@ -42,7 +42,7 @@ class User(Base):
     hospital_id = Column(Integer, ForeignKey("hospitals.id"))
 
     hospital = relationship("Hospital", back_populates="users", foreign_keys=[hospital_id])
-    owned_hospitals = relationship("Hospital", back_populates="owner", foreign_keys="Hospital.owner_id") # New linkage
+    owned_hospitals = relationship("Hospital", back_populates="owner", foreign_keys="Hospital.owner_id", cascade="all, delete-orphan") # New linkage
 
 class Device(Base):
     __tablename__ = "devices"
