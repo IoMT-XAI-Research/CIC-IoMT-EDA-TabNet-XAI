@@ -3,31 +3,42 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Using 127.0.0.1 for iOS Simulator
-  static const String baseUrl = 'https://iomt-ids-backend.onrender.com';
+  // Using Render Production URL
+  static const String baseUrl = 'https://cic-iomt-eda-tabnet-xai.onrender.com';
 
   Future<void> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/login');
+    print('Attempting login to: $url');
+    print('Email: $email');
 
-    // OAuth2PasswordRequestForm expects x-www-form-urlencoded
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: {
-        'username': email, // Mapping email to username field
-        'password': password,
-      },
-    );
+    try {
+      // OAuth2PasswordRequestForm expects x-www-form-urlencoded
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'username': email, // Mapping email to username field
+          'password': password,
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final token = data['access_token'];
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('access_token', token);
-    } else {
-      throw Exception('Failed to login: ${response.body}');
+      print('Login Response Status: ${response.statusCode}');
+      print('Login Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['access_token'];
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', token);
+        print('Token saved successfully');
+      } else {
+        throw Exception('Failed to login: ${response.body}');
+      }
+    } catch (e) {
+      print('Login Error: $e');
+      rethrow;
     }
   }
 
