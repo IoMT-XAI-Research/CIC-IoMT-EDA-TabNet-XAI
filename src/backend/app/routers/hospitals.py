@@ -42,6 +42,14 @@ def read_hospitals(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(dependencies.get_current_user)
 ):
-    # Only return hospitals owned by the user
-    hospitals = db.query(models.Hospital).filter(models.Hospital.owner_id == current_user.id).offset(skip).limit(limit).all()
+    if current_user.role == models.UserRole.ADMIN:
+        # Admin sees hospitals they own
+        hospitals = db.query(models.Hospital).filter(models.Hospital.owner_id == current_user.id).offset(skip).limit(limit).all()
+    else:
+        # Staff sees only their assigned hospital
+        if current_user.hospital_id:
+            hospitals = db.query(models.Hospital).filter(models.Hospital.id == current_user.hospital_id).all()
+        else:
+            hospitals = []
+    
     return hospitals

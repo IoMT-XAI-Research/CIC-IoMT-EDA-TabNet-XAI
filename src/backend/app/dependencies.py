@@ -24,7 +24,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         user_id: str = payload.get("sub")
         hospital_id: int = payload.get("hospital_id")
         role: str = payload.get("role")
-        if user_id is None or hospital_id is None:
+        if user_id is None:
             raise credentials_exception
         token_data = schemas.TokenData(user_id=int(user_id), hospital_id=hospital_id, role=role)
     except JWTError:

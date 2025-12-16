@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Dict, Any
 from .models import UserRole, DeviceStatus, EventType
 from datetime import datetime
@@ -27,8 +27,7 @@ class UserResponse(UserBase):
     role: UserRole
     hospital_id: Optional[int] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Hospital Schemas
 class HospitalBase(BaseModel):
@@ -41,8 +40,7 @@ class HospitalCreate(HospitalBase):
 class HospitalResponse(HospitalBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Device Schemas
 class DeviceBase(BaseModel):
@@ -58,8 +56,7 @@ class DeviceResponse(DeviceBase):
     last_risk_score: float
     hospital_id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Analysis Schemas
 class XAIForcePlot(BaseModel):
@@ -98,5 +95,4 @@ class EventResponse(EventBase):
     timestamp: datetime
     hospital_id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
