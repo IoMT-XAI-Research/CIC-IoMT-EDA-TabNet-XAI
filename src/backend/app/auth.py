@@ -4,7 +4,19 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from .schemas import TokenData
 
-SECRET_KEY = "YOUR_SUPER_SECRET_KEY_CHANGE_THIS_IN_PROD"
+import os
+import secrets
+import logging
+
+logger = logging.getLogger("uvicorn")
+
+# Try to get key from environment, otherwise generate random (for dev)
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    SECRET_KEY = secrets.token_urlsafe(32)
+    logger.warning("[AUTH] SECRET_KEY not found in env, using random generated key. Sessions will be lost on restart.")
+else:
+    logger.info("[AUTH] SECRET_KEY loaded from environment.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

@@ -51,6 +51,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(dependencies.get_db
     db_user = models.User(
         email=user.email,
         password_hash=hashed_password,
+        role=user.role, # Use role from request (defaults to TECH_STAFF)
         hospital_id=hospital_id, # Can be None
     )
     db.add(db_user)

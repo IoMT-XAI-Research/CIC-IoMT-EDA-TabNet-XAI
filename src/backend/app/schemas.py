@@ -20,6 +20,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     hospital_code: Optional[str] = None
+    role: Optional[UserRole] = UserRole.TECH_STAFF
 
 class UserResponse(UserBase):
     id: int
