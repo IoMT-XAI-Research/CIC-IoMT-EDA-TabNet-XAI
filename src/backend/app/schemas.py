@@ -46,6 +46,7 @@ class HospitalResponse(HospitalBase):
 class DeviceBase(BaseModel):
     name: str
     ip_address: str
+    room_number: Optional[str] = None
 
 class DeviceCreate(DeviceBase):
     hospital_unique_code: str
@@ -94,5 +95,13 @@ class EventResponse(EventBase):
     device_id: int
     timestamp: datetime
     hospital_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+# Activity Log Schema
+class ActivityLogResponse(BaseModel):
+    id: int
+    description: str
+    timestamp: datetime
 
     model_config = ConfigDict(from_attributes=True)

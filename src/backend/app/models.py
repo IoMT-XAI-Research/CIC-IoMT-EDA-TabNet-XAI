@@ -42,7 +42,7 @@ class User(Base):
     hospital_id = Column(Integer, ForeignKey("hospitals.id"), nullable=True)
 
     hospital = relationship("Hospital", back_populates="users", foreign_keys=[hospital_id])
-    owned_hospitals = relationship("Hospital", back_populates="owner", foreign_keys="Hospital.owner_id", cascade="all, delete-orphan") # New linkage
+    owned_hospitals = relationship("Hospital", back_populates="owner", foreign_keys="Hospital.owner_id", cascade="all, delete-orphan")
 
 class Device(Base):
     __tablename__ = "devices"
@@ -50,13 +50,14 @@ class Device(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     ip_address = Column(String)
+    room_number = Column(String, nullable=True) # New Field
     status = Column(Enum(DeviceStatus), default=DeviceStatus.SAFE)
     last_risk_score = Column(Float, default=0.0)
     hospital_id = Column(Integer, ForeignKey("hospitals.id"))
 
     hospital = relationship("Hospital", back_populates="devices")
-    analyses = relationship("Analysis", back_populates="device")
-    events = relationship("Event", back_populates="device")
+    analyses = relationship("Analysis", back_populates="device", cascade="all, delete-orphan")
+    events = relationship("Event", back_populates="device", cascade="all, delete-orphan")
 
 class Event(Base):
     __tablename__ = "events"
@@ -77,6 +78,13 @@ class Analysis(Base):
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(Integer, ForeignKey("devices.id"))
     prediction_score = Column(Float)
-    xai_data = Column(JSON) # Stores SHAP values and other XAI data
+    xai_data = Column(JSON) 
 
     device = relationship("Device", back_populates="analyses")
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    description = Column(String)
+    timestamp = Column(DateTime, default=datetime.utcnow)
