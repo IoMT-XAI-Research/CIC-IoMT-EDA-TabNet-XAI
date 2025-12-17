@@ -740,6 +740,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool isAlert = false;
   bool _isDialogOpen = false;
   late AnimationController _controller;
+  int _deviceCount = 0;
 
   // ✅ Backend ile konuşmak için ApiService
   final ApiService _apiService = ApiService();
@@ -776,6 +777,20 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     // Uygulama açılır açılmaz backend'i dinlemeye başla
     _startPollingAttackStatus();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final stats = await _apiService.getStats();
+      if (mounted) {
+        setState(() {
+          _deviceCount = stats['device_count'] ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading stats: $e');
+    }
   }
 
   @override
@@ -796,6 +811,9 @@ class _DashboardScreenState extends State<DashboardScreen>
         return;
       }
       _checkAttackStatus();
+      // Periodically refresh stats too if needed, but maybe less frequent or same
+      // for now just once is fine as per request context, but keeping it fresh is better
+      _loadStats();
     });
   }
 
@@ -806,6 +824,8 @@ class _DashboardScreenState extends State<DashboardScreen>
       final hospitals = await _apiService.getHospitals();
       if (hospitals.isEmpty) return;
 
+      // We could select a specific hospital here if we had state for it
+      // For now just checking the first one as before
       final devices = await _apiService.getDevices(hospitals[0]['unique_code']);
 
       // Burada demo için id = 1 cihazı hedef kabul ediyoruz.
@@ -905,7 +925,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                InfoCard(title: 'Toplam Cihaz', value: 'Multi'),
+                InfoCard(title: 'Toplam Cihaz', value: '$_deviceCount'),
                 const InfoCard(title: '24s Olağandışı Trafik', value: '0'),
               ],
             ),
@@ -1809,6 +1829,13 @@ class _HospitalManagementScreenState extends State<HospitalManagementScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: neonGreen),
             onPressed: () async {
+              if (nameCtrl.text.isEmpty || codeCtrl.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Alanlar boş bırakılamaz!'),
+                    backgroundColor: neonRed));
+                return;
+              }
+
               try {
                 await _api.createHospital(nameCtrl.text, codeCtrl.text);
                 Navigator.pop(ctx);
@@ -1827,6 +1854,122 @@ class _HospitalManagementScreenState extends State<HospitalManagementScreen> {
         ],
       ),
     );
+  }
+
+  void _showEditHospitalDialog(Map<String, dynamic> hospital) {
+    final nameCtrl = TextEditingController(text: hospital['name']);
+    final codeCtrl = TextEditingController(text: hospital['unique_code']);
+
+    showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+              backgroundColor: cardColor,
+              title: const Text('Hastane Düzenle',
+                  style: TextStyle(color: textLight)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    style: const TextStyle(color: textLight),
+                    decoration: const InputDecoration(labelText: 'Hastane Adı'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: codeCtrl,
+                    style: const TextStyle(color: textLight),
+                    decoration: const InputDecoration(
+                        labelText: 'unique_code (örn: BURSA-01)'),
+                  ),
+                  const SizedBox(height: 20),
+                  // Delete Option
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        // Confirm delete
+                        bool confirm = await showDialog(
+                                context: context,
+                                builder: (c) => AlertDialog(
+                                        backgroundColor: cardColor,
+                                        title: const Text('Emin misiniz?',
+                                            style: TextStyle(color: textLight)),
+                                        content: const Text(
+                                            'Bu işlem geri alınamaz ve bağlı cihazları da silebilir.',
+                                            style: TextStyle(color: textMuted)),
+                                        actions: [
+                                          TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(c, false),
+                                              child: const Text('İptal',
+                                                  style: TextStyle(
+                                                      color: textMuted))),
+                                          TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(c, true),
+                                              child: const Text('SİL',
+                                                  style: TextStyle(
+                                                      color: neonRed,
+                                                      fontWeight:
+                                                          FontWeight.bold))),
+                                        ])) ??
+                            false;
+
+                        if (confirm) {
+                          try {
+                            await _api.deleteHospital(hospital['id']);
+                            Navigator.pop(ctx); // Close edit dialog
+                            _fetchHospitals();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Hastane silindi.'),
+                                    backgroundColor: neonGreen));
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text('Hata: $e'),
+                                backgroundColor: neonRed));
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.delete, color: neonRed),
+                      label: const Text('Hastaneyi Sil',
+                          style: TextStyle(color: neonRed)),
+                    ),
+                  )
+                ],
+              ),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('İptal',
+                        style: TextStyle(color: textMuted))),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: neonGreen),
+                  onPressed: () async {
+                    if (nameCtrl.text.isEmpty || codeCtrl.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Alanlar boş bırakılamaz!'),
+                          backgroundColor: neonRed));
+                      return;
+                    }
+                    try {
+                      await _api.updateHospital(
+                          hospital['id'], nameCtrl.text, codeCtrl.text);
+                      Navigator.pop(ctx);
+                      _fetchHospitals();
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Hastane güncellendi!'),
+                          backgroundColor: neonGreen));
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text('Hata: $e'), backgroundColor: neonRed));
+                    }
+                  },
+                  child: const Text('Güncelle',
+                      style: TextStyle(color: darkBackground)),
+                ),
+              ],
+            ));
   }
 
   @override
@@ -1854,6 +1997,10 @@ class _HospitalManagementScreenState extends State<HospitalManagementScreen> {
                             color: textLight, fontWeight: FontWeight.bold)),
                     subtitle: Text(h['unique_code'] ?? '',
                         style: const TextStyle(color: textMuted)),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.edit, color: textMuted),
+                      onPressed: () => _showEditHospitalDialog(h),
+                    ),
                   ),
                 );
               },

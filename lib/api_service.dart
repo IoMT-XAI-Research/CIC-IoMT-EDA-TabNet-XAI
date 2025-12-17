@@ -126,6 +126,93 @@ class ApiService {
     }
   }
 
+  Future<void> updateHospital(int id, String name, String uniqueCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) throw Exception('No token found');
+
+    final url = Uri.parse('$baseUrl/hospitals/$id');
+    final response = await http.put(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'name': name, 'unique_code': uniqueCode}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update hospital: ${response.body}');
+    }
+  }
+
+  Future<void> deleteHospital(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) throw Exception('No token found');
+
+    final url = Uri.parse('$baseUrl/hospitals/$id');
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode != 204) {
+      throw Exception('Failed to delete hospital: ${response.body}');
+    }
+  }
+
+  Future<List<dynamic>> getLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) throw Exception('No token found');
+
+    final url = Uri.parse('$baseUrl/logs/');
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load logs: ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> getStats() async {
+    // Basic implementation: Count hospitals and devices
+    // Note: Ideally backend should provide a stats endpoint
+    try {
+      final hospitals = await getHospitals();
+      int deviceCount = 0;
+
+      // Fetch devices for each hospital to get accurate count
+      // This is inefficient but works with current backend
+      for (var h in hospitals) {
+        if (h['unique_code'] != null) {
+          try {
+            final devices = await getDevices(h['unique_code']);
+            deviceCount += devices.length;
+          } catch (e) {
+            print('Error fetching devices for ${h['name']}: $e');
+          }
+        }
+      }
+
+      return {
+        'hospital_count': hospitals.length,
+        'device_count': deviceCount,
+        'alert_count': 0 // Placeholder
+      };
+    } catch (e) {
+      print('getStats error: $e');
+      return {'hospital_count': 0, 'device_count': 0, 'alert_count': 0};
+    }
+  }
+
   Future<Map<String, dynamic>> getAnalysis(int deviceId) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
