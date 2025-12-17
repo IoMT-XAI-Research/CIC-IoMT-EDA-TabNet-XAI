@@ -7,8 +7,7 @@ from datetime import datetime
 class Token(BaseModel):
     access_token: str
     token_type: str
-    user_email: str
-    user_role: str
+    role: str
 
 class TokenData(BaseModel):
     user_id: Optional[int] = None

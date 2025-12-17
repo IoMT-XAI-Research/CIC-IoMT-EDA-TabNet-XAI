@@ -94,13 +94,12 @@ def login(
         data={
             "sub": str(user.id),
             "hospital_id": user.hospital_id,
-            # models.User'da role yoksa 500 patlamasın diye getattr kullandım
-            "role": getattr(user, "role", "admin"),
+            "role": user.role.value,
         },
         expires_delta=access_token_expires,
     )
 
-    return {"access_token": access_token, "token_type": "bearer", "role": user.role}
+    return {"access_token": access_token, "token_type": "bearer", "role": user.role.value}
 
 
 @router.get("/me", response_model=schemas.UserResponse)
