@@ -1,13 +1,12 @@
 # src/backend/app/routers/devices.py
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 
 from app import models, schemas, dependencies   # 🔹 modeller + şemalar + current_user
 from app.database import get_db                 # 🔹 ortak get_db
-from . import logs                              # 🔹 logs helper
 
 router = APIRouter(
     prefix="/devices",
@@ -15,30 +14,20 @@ router = APIRouter(
 )
 
 # --- 1) Cihaz oluşturma endpoint'i (YENİ) ---
-@router.post("/", response_model=schemas.DeviceResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.DeviceResponse)
 def create_device(
     payload: schemas.DeviceCreate,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(dependencies.get_current_user)
+    db: Session = Depends(get_db)
 ):
-    # RBAC: Only Admin can create devices
-    if current_user.role != models.UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Only Admins can create devices")
-
     # Lookup Hospital by unique_code
     hospital = db.query(models.Hospital).filter(models.Hospital.unique_code == payload.hospital_unique_code).first()
     if not hospital:
         raise HTTPException(status_code=404, detail="Hospital not found with provided code")
-    
-    # Ownership Check (Admin must own the hospital)
-    if hospital.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You do not own this hospital")
 
     # Create new device linked to this hospital
     device = models.Device(
         name=payload.name,
         ip_address=payload.ip_address,
-        room_number=payload.room_number, # New Field
         status=models.DeviceStatus.SAFE,
         last_risk_score=0.0,
         hospital_id=hospital.id,
@@ -47,8 +36,6 @@ def create_device(
     db.add(device)
     db.commit()
     db.refresh(device)
-    
-    logs.log_activity(db, f"Device Created: {device.name} in {hospital.name} by {current_user.email}")
 
     return device
 
@@ -147,29 +134,4 @@ def update_device_status(
         "message": f"Cihaz {device.name} durumu '{device.status}' olarak güncellendi!",
         "device": device,
     }
-
-@router.delete("/{device_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_device(
-    device_id: int,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(dependencies.get_current_user)
-):
-    # RBAC: Only Admin can delete devices
-    if current_user.role != models.UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Only Admins can delete devices")
-    
-    device = db.query(models.Device).filter(models.Device.id == device_id).first()
-    if not device:
-        raise HTTPException(status_code=404, detail="Device not found")
-    
-    # Optional: Verify ownership of hospital
-    # hospital = db.query(models.Hospital).filter(models.Hospital.id == device.hospital_id).first()
-    # if hospital.owner_id != current_user.id: ...
-    
-    db.delete(device)
-    db.commit()
-    
-    logs.log_activity(db, f"Device Deleted: {device.name} by {current_user.email}")
-    return None
-
 # --- BİTİŞ ---

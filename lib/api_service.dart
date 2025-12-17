@@ -101,8 +101,7 @@ class ApiService {
     }
   }
 
-  Future<void> createDevice(
-      String name, String ip, String hospitalCode, String? roomNumber) async {
+  Future<void> createDevice(String name, String ip, String hospitalCode) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
     if (token == null) throw Exception('No token found');
@@ -118,51 +117,12 @@ class ApiService {
         'name': name,
         'ip_address': ip,
         'hospital_unique_code': hospitalCode,
-        'room_number': roomNumber, // New Field
         'status': 'SAFE'
       }),
     );
 
     if (response.statusCode != 201) {
       throw Exception('Failed to create device: ${response.body}');
-    }
-  }
-
-  Future<void> deleteDevice(int deviceId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token');
-    if (token == null) throw Exception('No token found');
-
-    final url = Uri.parse('$baseUrl/devices/$deviceId');
-    final response = await http.delete(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode != 204) {
-      throw Exception('Failed to delete device: ${response.body}');
-    }
-  }
-
-  Future<List<dynamic>> getLogs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token');
-    if (token == null) throw Exception('No token found');
-
-    final url = Uri.parse('$baseUrl/logs/');
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to load logs: ${response.body}');
     }
   }
 

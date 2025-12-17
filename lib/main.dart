@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
@@ -740,63 +737,145 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
-  final ApiService _apiService = ApiService();
-  int _hospitalCount = 0;
-  int _deviceCount = 0;
-  Timer? _statsTimer;
-  // Controller kept to avoid breaking StatusArea if it exists elsewhere
+  bool isAlert = false;
+  bool _isDialogOpen = false;
   late AnimationController _controller;
+
+  // ✅ Backend ile konuşmak için ApiService
+  final ApiService _apiService = ApiService();
+
+  // ✅ Periyodik kontrol için Timer
+  Timer? _pollTimer;
+
+  void _setAlertState(bool newIsAlert) {
+    if (newIsAlert == isAlert) return; // Aynı duruma tekrar geçme
+
+    setState(() {
+      isAlert = newIsAlert;
+    });
+
+    if (newIsAlert) {
+      // ATTACK => popup aç
+      _showAttackPopup();
+    } else {
+      // SAFE => popup açıksa kapat
+      if (_isDialogOpen) {
+        Navigator.of(context, rootNavigator: true).pop();
+        _isDialogOpen = false;
+      }
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _loadStats();
-    _statsTimer =
-        Timer.periodic(const Duration(seconds: 30), (timer) => _loadStats());
-    // Mock controller for StatusArea compatibility
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1),
-    );
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+
+    // Uygulama açılır açılmaz backend'i dinlemeye başla
+    _startPollingAttackStatus();
   }
 
   @override
   void dispose() {
-    _statsTimer?.cancel();
+    _pollTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
-  Future<void> _loadStats() async {
+  // ✅ Her 3 saniyede bir backend'ten status çek
+  void _startPollingAttackStatus() {
+    // İlk başta hemen bir kez çağır
+    _checkAttackStatus();
+
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      _checkAttackStatus();
+    });
+  }
+
+  // ✅ Backend'teki /devices listesini çek ve id=1'in status'una göre isAlert'i ayarla
+  Future<void> _checkAttackStatus() async {
     try {
+      // Demo: Fetch hospitals first, pick first one, then check devices.
       final hospitals = await _apiService.getHospitals();
-      int devCount = 0;
+      if (hospitals.isEmpty) return;
 
-      if (hospitals.isNotEmpty) {
-        try {
-          // Just count first hospital for now
-          final devices =
-              await _apiService.getDevices(hospitals[0]['unique_code']);
-          devCount = devices.length;
-        } catch (e) {
-          print('Error fetching devices for stats: $e');
-        }
+      final devices = await _apiService.getDevices(hospitals[0]['unique_code']);
+
+      // Burada demo için id = 1 cihazı hedef kabul ediyoruz.
+      dynamic target;
+      try {
+        target = devices.firstWhere((d) => d['id'] == 1);
+      } catch (_) {
+        target = null;
       }
 
-      if (mounted) {
-        setState(() {
-          _hospitalCount = hospitals.length;
-          _deviceCount = devCount;
-        });
+      bool newIsAlert = false;
+      if (target != null) {
+        final status = (target['status'] ?? '').toString().toUpperCase();
+        newIsAlert = status == 'ATTACK';
       }
+
+      if (!mounted) return;
+
+// Yeni helper fonksiyonu kullan
+      _setAlertState(newIsAlert);
     } catch (e) {
-      debugPrint('Stats load error: $e');
+      // Demo sırasında ortalığı kirletmemek için sadece logla
+      debugPrint('Attack status check error: $e');
     }
+  }
+
+  // Bu artık sadece istersen elle test için duruyor,
+  // gerçek senaryoda backend'ten gelen ATTACK durumu kullanılıyor.
+  void toggleAlert() {
+    _setAlertState(!isAlert);
+  }
+
+  void _showAttackPopup() {
+    _isDialogOpen = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertPopup(
+          onIsolate: () {
+            // Kullanıcı butona basınca dialog kapansın
+            _isDialogOpen = false;
+            Navigator.of(dialogContext).pop();
+
+            // İstersen burada da SAFE’e çekebilirsin:
+            _setAlertState(false);
+          },
+        );
+      },
+    );
+  }
+
+  void _navigateToDetail(
+      BuildContext context, String deviceName, bool isCurrentlyAlert) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DeviceDetailScreen(
+          deviceName: deviceName,
+          isAlert: isCurrentlyAlert,
+          userRole: 'Teknik Personel',
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final userEmail = FirebaseAuth.instance.currentUser?.email ?? 'Kullanıcı';
+    bool isOxygenSensorAlert = isAlert;
 
     return Scaffold(
       appBar: AppBar(
@@ -812,16 +891,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: textMuted),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('access_token');
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              }
-            },
+            onPressed: () => FirebaseAuth.instance.signOut(),
           ),
         ],
       ),
@@ -830,29 +900,13 @@ class _DashboardScreenState extends State<DashboardScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Text("Sistem Durumu",
-                style: TextStyle(
-                    color: textLight,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                    color: cardColor, borderRadius: BorderRadius.circular(12)),
-                child: Row(children: const [
-                  Icon(Icons.check_circle, color: neonGreen, size: 30),
-                  SizedBox(width: 10),
-                  Text("Sistem Aktif",
-                      style: TextStyle(color: neonGreen, fontSize: 18))
-                ])),
+            StatusArea(isAlert: isAlert, controller: _controller),
             const SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                InfoCard(title: 'Hastane Sayısı', value: '$_hospitalCount'),
-                InfoCard(
-                    title: 'Aktif Cihazlar (Birincil)', value: '$_deviceCount'),
+                InfoCard(title: 'Toplam Cihaz', value: 'Multi'),
+                const InfoCard(title: '24s Olağandışı Trafik', value: '0'),
               ],
             ),
             const SizedBox(height: 30),
@@ -863,22 +917,29 @@ class _DashboardScreenState extends State<DashboardScreen>
                     color: textLight)),
             const Divider(color: cardColor, thickness: 2),
             const SizedBox(height: 15),
+
+            // Demo statik liste yerine dinamik inventory ekranına yönlendirme
           ],
         ),
       ),
       bottomNavigationBar: NavBar(
+        // Artık alarm backend'ten geldiği için, bu butonu kullanmak zorunda değilsin.
         onSimulate: () {},
         onNavigate: (index) {
           if (index == 2) {
+            // Hospitals
             Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => const HospitalManagementScreen()));
           } else if (index == 3) {
+            // Activity Log
             Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => const ActivityLogScreen()));
           } else if (index == 4) {
+            // Devices
             Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => const DeviceInventoryScreen()));
           } else if (index == 5) {
+            // Settings
             Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => const SettingsScreen()));
           }
@@ -887,7 +948,222 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 }
-// Removed outdated methods like _checkAttackStatus and _showAttackPopup
+
+// 10. CİHAZ DETAY VE XAI ANALİZ EKRANI (GÜNCELLENDİ - Aşama 4)
+
+class DeviceDetailScreen extends StatefulWidget {
+  final String deviceName;
+  final bool isAlert;
+  final String userRole;
+
+  const DeviceDetailScreen(
+      {super.key,
+      required this.deviceName,
+      required this.isAlert,
+      required this.userRole});
+
+  @override
+  State<DeviceDetailScreen> createState() => _DeviceDetailScreenState();
+}
+
+class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
+  late String _currentRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentRole = widget.userRole;
+  }
+
+  Map<String, String> getAdaptiveExplanation() {
+    // 🔹 Teknik Personel (Daha detaylı ve teknik)
+    String techReason =
+        "SHAP analizi, Outbound Packet Rate ve Connection Time parametrelerindeki anormal artış nedeniyle DDoS saldırısı tespiti.";
+    // 🔹 Yönetsel Personel (Daha özet ve acil)
+    String execReason =
+        "Oksijen Sensöründe tespit edilen olağandışı veri trafiği nedeniyle sistem güvenliği risk altındadır. Acil müdahale gerekir.";
+
+    String summary = widget.isAlert
+        ? (_currentRole == 'Teknik Personel' ? techReason : execReason)
+        : 'Sistem stabil ve tüm trafik normaldir.';
+
+    return {
+      "reason": summary,
+      "confidence": widget.isAlert ? '98.5%' : '0%',
+    };
+  }
+
+  void _toggleRole() {
+    setState(() {
+      if (_currentRole == 'Teknik Personel') {
+        _currentRole = 'Yönetsel Personel';
+      } else {
+        _currentRole = 'Teknik Personel';
+      }
+
+      // Kullanıcıya geri bildirim ver
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Açıklama rolü değişti: $_currentRole'),
+          backgroundColor: accentBlue,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Color statusColor = widget.isAlert ? neonRed : neonGreen;
+    String statusText = widget.isAlert ? 'KRİTİK ALARM' : 'NORMAL ÇALIŞIYOR';
+    Map<String, String> analysis = getAdaptiveExplanation();
+    double score = double.parse(analysis["confidence"]!.replaceAll('%', ''));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${widget.deviceName} Detay Analizi',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: darkBackground,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: TextButton.icon(
+              onPressed: _toggleRole,
+              icon: const Icon(Icons.person_pin, size: 18, color: neonYellow),
+              label: Text(
+                _currentRole, // Mevcut rolü göster
+                style: const TextStyle(
+                    color: neonYellow, fontWeight: FontWeight.bold),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: neonYellow.withOpacity(0.2),
+              ),
+            ),
+          )
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- CİHAZ DURUMU KARTI ---
+            DetailCard(
+              title: 'Cihaz Durumu',
+              icon: widget.isAlert
+                  ? Icons.warning_amber_rounded
+                  : Icons.check_circle_outline,
+              iconColor: statusColor,
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                        color: statusColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  // 🔹 Adaptif Açıklama Metni: Bu metin butona basınca değişecek
+                  Text('Analiz Özeti: ${analysis["reason"]}',
+                      style: TextStyle(color: textMuted)),
+                ],
+              ),
+            ),
+
+            // --- XAI: GÜVEN SKORU GRAFİĞİ ---
+            SettingsHeader('Yapay Zeka Analiz Raporu (SHAP / TabNet)'),
+            DetailCard(
+              title: 'Saldırı Güven Skoru',
+              icon: Icons.score,
+              iconColor: neonYellow,
+              content: ConfidenceChart(score: score),
+            ),
+
+            // --- XAI: FORCE PLOT ---
+            DetailCard(
+              title: 'XAI - Etki Analizi (Force Plot)',
+              icon: Icons.bar_chart,
+              iconColor: neonYellow,
+              content: ForcePlotSimulator(
+                baseValue: 0.50,
+                finalScore: score / 100,
+                isAlert: widget.isAlert,
+                contributions: widget.isAlert
+                    ? [
+                        {
+                          'feature': 'Outbound Packet Rate',
+                          'value': 0.30,
+                          'isPositive': true
+                        },
+                        {
+                          'feature': 'Connection Time',
+                          'value': 0.15,
+                          'isPositive': true
+                        },
+                        {
+                          'feature': 'Normal Trafik (Negatif Etki)',
+                          'value': 0.035,
+                          'isPositive': false
+                        },
+                      ]
+                    : [],
+              ),
+            ),
+
+            // --- XAI: SHAPLEY DEĞERLERİ (ETKİ FAKTÖRLERİ) ---
+            SettingsHeader('XAI: Etki Faktörleri (Özellik Listesi)'),
+
+            if (widget.isAlert) ...[
+              FactorBar(
+                  name: 'Outbound Packet Rate (%200 Artış)',
+                  percentage: 70,
+                  barColor: neonRed),
+              FactorBar(
+                  name: 'Connection Time', percentage: 25, barColor: neonRed),
+              FactorBar(
+                  name: 'Kullanım Dışı Protokol Girişi',
+                  percentage: 5,
+                  barColor: neonRed),
+            ] else ...[
+              FactorBar(
+                  name: 'Normal Veri Akışı',
+                  percentage: 95,
+                  barColor: neonGreen),
+              FactorBar(name: 'Hata Oranı', percentage: 5, barColor: textMuted),
+            ],
+
+            const SizedBox(height: 30),
+            // Acil Eylem Butonu
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(
+                            '${widget.deviceName} bağlantısı kesildi ve izole edildi.'),
+                        backgroundColor: neonRed),
+                  );
+                },
+                icon: const Icon(Icons.flash_off, color: darkBackground),
+                label: const Text('ACİL BAĞLANTIYI KES',
+                    style: TextStyle(
+                        color: darkBackground, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: neonRed,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 // 11. AYARLAR EKRANI
 
@@ -1389,6 +1665,80 @@ class DetailCard extends StatelessWidget {
   }
 }
 
+class ConfidenceChart extends StatelessWidget {
+  final double score;
+
+  const ConfidenceChart({super.key, required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    Color color = score > 50 ? neonRed : neonGreen;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tespit Güven Skoru: ${score.toStringAsFixed(1)}%',
+          style: TextStyle(color: color, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(5),
+          child: LinearProgressIndicator(
+            value: score / 100,
+            backgroundColor: cardColor.withOpacity(0.5),
+            color: color,
+            minHeight: 15,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          score > 50
+              ? 'Yapay Zeka, bu analizin büyük olasılıkla bir saldırı olduğunu onayladı.'
+              : 'Geçmiş verilerle uyumlu, risk düşük.',
+          style: TextStyle(color: textMuted, fontSize: 12),
+        )
+      ],
+    );
+  }
+}
+
+class FactorBar extends StatelessWidget {
+  final String name;
+  final double percentage;
+  final Color barColor;
+
+  const FactorBar(
+      {super.key,
+      required this.name,
+      required this.percentage,
+      required this.barColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('$name (%${percentage.toStringAsFixed(0)})',
+              style: const TextStyle(color: textLight)),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: percentage / 100,
+              backgroundColor: cardColor.withOpacity(0.7),
+              color: barColor.withOpacity(0.9),
+              minHeight: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // 12. HASTANE YÖNETİMİ EKRANI (YENİ)
 class HospitalManagementScreen extends StatefulWidget {
   const HospitalManagementScreen({super.key});
@@ -1586,7 +1936,6 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
 
     final nameCtrl = TextEditingController();
     final ipCtrl = TextEditingController();
-    final roomCtrl = TextEditingController(); // New Controller
 
     showDialog(
       context: context,
@@ -1600,43 +1949,13 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
             TextField(
               controller: nameCtrl,
               style: const TextStyle(color: textLight),
-              decoration: const InputDecoration(
-                  labelText: 'Cihaz Adı',
-                  labelStyle: TextStyle(color: textMuted),
-                  enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: textMuted)),
-                  focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: neonGreen)),
-                  filled: true,
-                  fillColor: Colors.black26),
+              decoration: const InputDecoration(labelText: 'Cihaz Adı'),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: ipCtrl,
               style: const TextStyle(color: textLight),
-              decoration: const InputDecoration(
-                  labelText: 'IP Adresi',
-                  labelStyle: TextStyle(color: textMuted),
-                  enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: textMuted)),
-                  focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: neonGreen)),
-                  filled: true,
-                  fillColor: Colors.black26),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: roomCtrl,
-              style: const TextStyle(color: textLight),
-              decoration: const InputDecoration(
-                  labelText: 'Oda Numarası (Opsiyonel)',
-                  labelStyle: TextStyle(color: textMuted),
-                  enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: textMuted)),
-                  focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: neonGreen)),
-                  filled: true,
-                  fillColor: Colors.black26),
+              decoration: const InputDecoration(labelText: 'IP Adresi'),
             ),
             const SizedBox(height: 10),
             Text('Hastane: $_selectedHospitalCode',
@@ -1645,17 +1964,13 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('İptal', style: TextStyle(color: textMuted))),
+              onPressed: () => Navigator.pop(ctx), child: const Text('İptal')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: neonGreen),
             onPressed: () async {
               try {
                 await _api.createDevice(
-                    nameCtrl.text,
-                    ipCtrl.text,
-                    _selectedHospitalCode!,
-                    roomCtrl.text.isEmpty ? null : roomCtrl.text);
+                    nameCtrl.text, ipCtrl.text, _selectedHospitalCode!);
                 Navigator.pop(ctx);
                 _fetchDevices();
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -1675,14 +1990,14 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
     );
   }
 
-  void _navigateToDetail(BuildContext context, Map<String, dynamic> device) {
+  void _navigateToDetail(
+      BuildContext context, String deviceName, bool isCurrentlyAlert) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => DeviceDetailScreen(
-          deviceName: device['name'] ?? 'Bilinmiyor',
-          isAlert: device['status'] == 'ATTACK',
-          userRole: 'Teknik Personel', // TODO: Get real role
-          deviceData: device, // Pass full data
+          deviceName: deviceName,
+          isAlert: isCurrentlyAlert,
+          userRole: 'Teknik Personel',
         ),
       ),
     );
@@ -1747,48 +2062,13 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
                         itemBuilder: (ctx, i) {
                           final d = _devices[i];
                           final isAlert = (d['status'] == 'ATTACK');
-                          final deviceId = d['id'];
-
-                          return Dismissible(
-                            key: Key(deviceId.toString()),
-                            direction: DismissDirection.endToStart,
-                            confirmDismiss: (direction) async {
-                              // Simple Role check via Token (decoding) is complex here without storing role.
-                              // We will try to delete, if backend says 403, we return false.
-                              try {
-                                await _api.deleteDevice(deviceId);
-                                return true;
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content: Text('Silinemedi: $e'),
-                                        backgroundColor: neonRed));
-                                return false;
-                              }
-                            },
-                            onDismissed: (direction) {
-                              setState(() {
-                                _devices.removeAt(i);
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('Cihaz silindi'),
-                                      backgroundColor: neonGreen));
-                            },
-                            background: Container(
-                                color: neonRed,
-                                alignment: Alignment.centerRight,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 20),
-                                child: const Icon(Icons.delete,
-                                    color: Colors.white)),
-                            child: GestureDetector(
-                              onTap: () => _navigateToDetail(context, d),
-                              child: DeviceItem(
-                                name: d['name'] ?? 'Bilinmeyen Cihaz',
-                                status: isAlert ? 'ATTACK detected' : 'SAFE',
-                                isAlert: isAlert,
-                              ),
+                          return GestureDetector(
+                            onTap: () => _navigateToDetail(
+                                context, d['name'] ?? 'Cihaz', isAlert),
+                            child: DeviceItem(
+                              name: d['name'] ?? 'Bilinmeyen Cihaz',
+                              status: isAlert ? 'ATTACK detected' : 'SAFE',
+                              isAlert: isAlert,
                             ),
                           );
                         },
@@ -1805,186 +2085,45 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
   }
 }
 
-class DeviceDetailScreen extends StatefulWidget {
-  final String deviceName;
-  final bool isAlert;
-  final String userRole;
-  final Map<String, dynamic>? deviceData; // New Parameter
-
-  const DeviceDetailScreen(
-      {super.key,
-      required this.deviceName,
-      required this.isAlert,
-      required this.userRole,
-      this.deviceData});
-
-  @override
-  State<DeviceDetailScreen> createState() => _DeviceDetailScreenState();
-}
-
-class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
-  // We can keep role toggle if needed for the UI logic, or remove it.
-  // Requirement: "Remove AI Analysis Report and XAI Impact Factors".
-  // Requirement: "Keep Device Status".
-  // Requirement: "Show Hospital Name, IP, Room Number".
-
-  @override
-  Widget build(BuildContext context) {
-    final device = widget.deviceData ?? {};
-    final ip = device['ip_address'] ?? 'Bilinmiyor';
-    final room = device['room_number'] ?? 'Not Assigned';
-    final status = widget.isAlert ? 'ATTACK' : 'SAFE';
-    // Access hospital info if available in deviceData or need to fetch?
-    // deviceData comes from getDevices which is simple fields.
-    // We might not have hospital name directly in deviceData unless backend joins it.
-    // Backend `DeviceResponse` has `hospital_id`.
-    // For now we can just show "Hospital ID: ..." or nothing if not available.
-    // Or we rely on previous screen passing it (it doesn't currently).
-    // Let's just show what we have.
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.deviceName,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: darkBackground,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status Section
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: widget.isAlert
-                    ? neonRed.withOpacity(0.1)
-                    : neonGreen.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: widget.isAlert ? neonRed : neonGreen),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    widget.isAlert ? Icons.warning : Icons.check_circle,
-                    color: widget.isAlert ? neonRed : neonGreen,
-                    size: 40,
-                  ),
-                  const SizedBox(width: 20),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Device Status',
-                          style: TextStyle(color: textMuted, fontSize: 14)),
-                      Text(status,
-                          style: TextStyle(
-                              color: widget.isAlert ? neonRed : neonGreen,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // Device Info Section
-            const Text('Cihaz Bilgileri',
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: textLight)),
-            const SizedBox(height: 15),
-            _buildInfoRow('IP Adresi', ip),
-            _buildInfoRow('Oda Numarası', room),
-            _buildInfoRow('Cihaz ID', '${device['id'] ?? '-'}'),
-            // If we had hospital name, we'd show it here.
-
-            const SizedBox(height: 30),
-
-            // Permissions / Actions (Edit/Delete - only for Admin/Tech?)
-            // Requirement: "Permissions: Edit and Delete buttons will be hidden if user role is TECH_STAFF"
-            // Since we don't have robust role passing yet (it's hardcoded 'Teknik Personel' in nav),
-            // We will hide them for now or show based on widget.userRole.
-
-            if (widget.userRole != 'Teknik Personel') ...[
-              Row(children: [
-                Expanded(
-                    child: ElevatedButton.icon(
-                  icon: const Icon(Icons.edit),
-                  label: const Text("Düzenle"),
-                  onPressed: () {}, // TODO: Edit Not Implemented
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: accentBlue,
-                      foregroundColor: Colors.white),
-                )),
-                const SizedBox(width: 10),
-                Expanded(
-                    child: ElevatedButton.icon(
-                  icon: const Icon(Icons.delete),
-                  label: const Text("Sil"),
-                  onPressed:
-                      () {}, // Handled in inventory, but could be here too
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: neonRed, foregroundColor: Colors.white),
-                )),
-              ])
-            ]
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: textMuted, fontSize: 16)),
-          Text(value,
-              style: const TextStyle(
-                  color: textLight, fontSize: 16, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-}
-
 // 14. ETKİNLİK KAYIT DEFTERİ EKRANI (YENİ EKLENDİ - Aşama 2)
 
-class ActivityLogScreen extends StatefulWidget {
+class ActivityLogScreen extends StatelessWidget {
   const ActivityLogScreen({super.key});
 
-  @override
-  State<ActivityLogScreen> createState() => _ActivityLogScreenState();
-}
-
-class _ActivityLogScreenState extends State<ActivityLogScreen> {
-  final ApiService _api = ApiService();
-  List<dynamic> _logs = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchLogs();
-  }
-
-  Future<void> _fetchLogs() async {
-    try {
-      final logs = await _api.getLogs();
-      if (mounted)
-        setState(() {
-          _logs = logs;
-          _isLoading = false;
-        });
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-      // debugPrint("Log Error: $e");
-    }
-  }
+  final List<Map<String, dynamic>> logEntries = const [
+    {
+      'time': '10:30',
+      'type': 'KRİTİK UYARI',
+      'device': 'Oksijen Sensörü - Oda 302',
+      'message': 'DDoS Saldırısı Tespit Edildi (Güven Skoru: 98.5%)',
+      'icon': Icons.warning_amber_rounded,
+      'color': neonRed
+    },
+    {
+      'time': '10:31',
+      'type': 'MÜDAHALE',
+      'device': 'Oksijen Sensörü - Oda 302',
+      'message': 'Acil İzolasyon Komutu Uygulandı (Kullanıcı: Admin)',
+      'icon': Icons.flash_off,
+      'color': accentBlue
+    },
+    {
+      'time': '09:00',
+      'type': 'DURUM',
+      'device': 'Akıllı Tansiyon Cihazı',
+      'message': 'Günlük Rapor: 12 saat stabil trafik.',
+      'icon': Icons.check_circle_outline,
+      'color': neonGreen
+    },
+    {
+      'time': 'Dün 14:00',
+      'type': 'HAFİF UYARI',
+      'device': 'İlaç Pompası - Dozaj 1',
+      'message': 'Anormal DNS sorgu sayısı (Düşük Risk)',
+      'icon': Icons.notification_important_outlined,
+      'color': neonYellow
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -1994,26 +2133,20 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
             style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: darkBackground,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: neonGreen))
-          : _logs.isEmpty
-              ? const Center(
-                  child: Text('Kayıt bulunamadı.',
-                      style: TextStyle(color: textMuted)))
-              : ListView.builder(
-                  padding: const EdgeInsets.only(top: 10.0),
-                  itemCount: _logs.length,
-                  itemBuilder: (context, index) {
-                    final log = _logs[index];
-                    return LogItem(log: log);
-                  },
-                ),
+      body: ListView.builder(
+        padding: const EdgeInsets.only(top: 10.0),
+        itemCount: logEntries.length,
+        itemBuilder: (context, index) {
+          final log = logEntries[index];
+          return LogItem(log: log);
+        },
+      ),
     );
   }
 }
 
 class LogItem extends StatelessWidget {
-  final dynamic log;
+  final Map<String, dynamic> log;
   const LogItem({super.key, required this.log});
 
   @override
@@ -2023,19 +2156,135 @@ class LogItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: ListTile(
-        leading: const Icon(Icons.info_outline, color: accentBlue),
-        title: Text(log['description'] ?? 'Event',
+        leading: Icon(log['icon'] as IconData, color: log['color'] as Color),
+        title: Text(log['message'] as String,
             style: const TextStyle(color: textLight)),
         subtitle: Text(
-          log['timestamp'] != null
-              ? DateFormat('dd/MM/yyyy HH:mm')
-                  .format(DateTime.parse(log['timestamp']))
-              : 'Unknown Date',
-          style: const TextStyle(color: textMuted, fontSize: 12),
+            '${log['time']} | ${log['device']} | Tip: ${log['type']}',
+            style: TextStyle(color: textMuted, fontSize: 12)),
+        trailing: Text(log['time'] as String,
+            style: TextStyle(
+                color: log['color'] as Color, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+}
+
+// 15. YARDIMCI XAI WIDGET'LARI (Aşama 3 Kodu - DOĞRU YER)
+
+class ForcePlotSimulator extends StatelessWidget {
+  final double baseValue;
+  final double finalScore;
+  final List<Map<String, dynamic>> contributions;
+  final bool isAlert;
+
+  const ForcePlotSimulator({
+    super.key,
+    required this.baseValue,
+    required this.finalScore,
+    required this.contributions,
+    required this.isAlert,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isAlert || contributions.isEmpty) {
+      return _buildNormalState();
+    }
+
+    List<Widget> plotBlocks = contributions.map<Widget>((contrib) {
+      return _ForcePlotBlock(
+        label: contrib['feature'] as String,
+        value: contrib['value'] as double,
+        isPositive: contrib['isPositive'] as bool,
+      );
+    }).toList();
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Text('Temel Değer (${baseValue.toStringAsFixed(2)})',
+                style: TextStyle(color: textMuted, fontSize: 12)),
+            Expanded(
+              child: Container(
+                height: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                color: textMuted,
+              ),
+            ),
+            Text('Nihai Skor (${finalScore.toStringAsFixed(2)})',
+                style: TextStyle(
+                    color: neonRed, fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
         ),
-        trailing: Icon(
-          log['is_alert'] == true ? Icons.warning : Icons.check_circle,
-          color: log['is_alert'] == true ? neonRed : neonGreen,
+        const SizedBox(height: 15),
+        Wrap(
+          spacing: 2.0,
+          runSpacing: 4.0,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const Icon(Icons.show_chart, color: textMuted, size: 16),
+            const SizedBox(width: 5),
+            ...plotBlocks,
+            const SizedBox(width: 5),
+            const Icon(Icons.flag, color: neonRed, size: 16),
+          ],
+        ),
+        const SizedBox(height: 15),
+        const Text(
+          'Kırmızı bloklar (örn: Packet Rate) skoru saldırı yönüne çekerken, mavi bloklar güvenli yönde tutar.',
+          style: TextStyle(color: textMuted, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNormalState() {
+    return Row(
+      children: [
+        Icon(Icons.check_circle, color: neonGreen, size: 16),
+        const SizedBox(width: 10),
+        Text('Tüm özellikler beklenen aralıkta.',
+            style: TextStyle(color: textMuted)),
+      ],
+    );
+  }
+}
+
+class _ForcePlotBlock extends StatelessWidget {
+  final String label;
+  final double value;
+  final bool isPositive;
+
+  const _ForcePlotBlock({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.isPositive,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double width = (value * 300).clamp(20.0, 100.0);
+
+    return Tooltip(
+      message: '$label (${isPositive ? '+' : ''}${value.toStringAsFixed(2)})',
+      child: Container(
+        width: width,
+        height: 20,
+        decoration: BoxDecoration(
+          color: isPositive
+              ? neonRed.withOpacity(0.8)
+              : accentBlue.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(2),
+        ),
+        child: Center(
+          child: Icon(
+            isPositive ? Icons.arrow_right_alt : Icons.arrow_back,
+            color: Colors.white,
+            size: 14,
+          ),
         ),
       ),
     );
