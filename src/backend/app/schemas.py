@@ -47,6 +47,7 @@ class HospitalResponse(HospitalBase):
 class DeviceBase(BaseModel):
     name: str
     ip_address: str
+    room_number: Optional[str] = None # Added field
 
 class DeviceCreate(DeviceBase):
     hospital_unique_code: str

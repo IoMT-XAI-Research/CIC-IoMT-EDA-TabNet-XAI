@@ -50,6 +50,7 @@ class Device(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     ip_address = Column(String)
+    room_number = Column(String, nullable=True) # New Field
     status = Column(Enum(DeviceStatus), default=DeviceStatus.SAFE)
     last_risk_score = Column(Float, default=0.0)
     hospital_id = Column(Integer, ForeignKey("hospitals.id"))

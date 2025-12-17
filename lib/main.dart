@@ -885,8 +885,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => DeviceDetailScreen(
-          deviceName: deviceName,
-          isAlert: isCurrentlyAlert,
+          device: {
+            'name': deviceName,
+            'status': isCurrentlyAlert ? 'ATTACK' : 'SAFE',
+            'ip_address': '192.168.1.X', // Dummy for dash
+            'room_number': 'Bilinmiyor'
+          },
           userRole: 'Teknik Personel',
         ),
       ),
@@ -896,7 +900,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   Widget build(BuildContext context) {
     final userEmail = FirebaseAuth.instance.currentUser?.email ?? 'Kullanıcı';
-    bool isOxygenSensorAlert = isAlert;
+    // isOxygenSensorAlert variable removed
 
     return Scaffold(
       appBar: AppBar(
@@ -970,217 +974,138 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 }
 
-// 10. CİHAZ DETAY VE XAI ANALİZ EKRANI (GÜNCELLENDİ - Aşama 4)
+// 10. CİHAZ DETAY EKRANI (GÜNCELLENDİ)
 
 class DeviceDetailScreen extends StatefulWidget {
-  final String deviceName;
-  final bool isAlert;
+  final Map<String, dynamic> device;
   final String userRole;
 
-  const DeviceDetailScreen(
-      {super.key,
-      required this.deviceName,
-      required this.isAlert,
-      required this.userRole});
+  const DeviceDetailScreen({
+    Key? key,
+    required this.device,
+    required this.userRole,
+  }) : super(key: key);
 
   @override
-  State<DeviceDetailScreen> createState() => _DeviceDetailScreenState();
+  _DeviceDetailScreenState createState() => _DeviceDetailScreenState();
 }
 
 class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
-  late String _currentRole;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentRole = widget.userRole;
-  }
-
-  Map<String, String> getAdaptiveExplanation() {
-    // 🔹 Teknik Personel (Daha detaylı ve teknik)
-    String techReason =
-        "SHAP analizi, Outbound Packet Rate ve Connection Time parametrelerindeki anormal artış nedeniyle DDoS saldırısı tespiti.";
-    // 🔹 Yönetsel Personel (Daha özet ve acil)
-    String execReason =
-        "Oksijen Sensöründe tespit edilen olağandışı veri trafiği nedeniyle sistem güvenliği risk altındadır. Acil müdahale gerekir.";
-
-    String summary = widget.isAlert
-        ? (_currentRole == 'Teknik Personel' ? techReason : execReason)
-        : 'Sistem stabil ve tüm trafik normaldir.';
-
-    return {
-      "reason": summary,
-      "confidence": widget.isAlert ? '98.5%' : '0%',
-    };
-  }
-
-  void _toggleRole() {
-    setState(() {
-      if (_currentRole == 'Teknik Personel') {
-        _currentRole = 'Yönetsel Personel';
-      } else {
-        _currentRole = 'Teknik Personel';
-      }
-
-      // Kullanıcıya geri bildirim ver
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Açıklama rolü değişti: $_currentRole'),
-          backgroundColor: accentBlue,
-          duration: const Duration(seconds: 1),
-        ),
-      );
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    Color statusColor = widget.isAlert ? neonRed : neonGreen;
-    String statusText = widget.isAlert ? 'KRİTİK ALARM' : 'NORMAL ÇALIŞIYOR';
-    Map<String, String> analysis = getAdaptiveExplanation();
-    double score = double.parse(analysis["confidence"]!.replaceAll('%', ''));
+    final deviceName = widget.device['name'] ?? 'Bilinmiyor';
+    final ip = widget.device['ip_address'] ?? ' - ';
+    final room = widget.device['room_number'] ?? 'Atanmamış';
+    final status = widget.device['status'] ?? 'SAFE';
+    bool isAlert = (status == 'ATTACK');
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.deviceName} Detay Analizi',
+        title: Text(deviceName,
             style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: darkBackground,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: TextButton.icon(
-              onPressed: _toggleRole,
-              icon: const Icon(Icons.person_pin, size: 18, color: neonYellow),
-              label: Text(
-                _currentRole, // Mevcut rolü göster
-                style: const TextStyle(
-                    color: neonYellow, fontWeight: FontWeight.bold),
-              ),
-              style: TextButton.styleFrom(
-                foregroundColor: neonYellow.withOpacity(0.2),
-              ),
-            ),
-          )
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- CİHAZ DURUMU KARTI ---
-            DetailCard(
-              title: 'Cihaz Durumu',
-              icon: widget.isAlert
-                  ? Icons.warning_amber_rounded
-                  : Icons.check_circle_outline,
-              iconColor: statusColor,
-              content: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // 1. Device Status Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: isAlert ? neonRed : neonGreen.withOpacity(0.5),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isAlert
+                        ? neonRed.withOpacity(0.2)
+                        : neonGreen.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: Column(
                 children: [
-                  Text(
-                    statusText,
-                    style: TextStyle(
-                        color: statusColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold),
+                  Icon(
+                    isAlert
+                        ? Icons.warning_amber_rounded
+                        : Icons.check_circle_outline,
+                    size: 60,
+                    color: isAlert ? neonRed : neonGreen,
                   ),
-                  const SizedBox(height: 8),
-                  // 🔹 Adaptif Açıklama Metni: Bu metin butona basınca değişecek
-                  Text('Analiz Özeti: ${analysis["reason"]}',
-                      style: TextStyle(color: textMuted)),
+                  const SizedBox(height: 15),
+                  Text(
+                    isAlert ? 'TEHDİT ALGILANDI' : 'GÜVENLİ',
+                    style: TextStyle(
+                      color: isAlert ? neonRed : neonGreen,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    isAlert
+                        ? 'Cihaz şüpheli aktivite gösteriyor.'
+                        : 'Cihaz normal çalışıyor.',
+                    style: const TextStyle(color: textMuted),
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             ),
 
-            // --- XAI: GÜVEN SKORU GRAFİĞİ ---
-            SettingsHeader('Yapay Zeka Analiz Raporu (SHAP / TabNet)'),
-            DetailCard(
-              title: 'Saldırı Güven Skoru',
-              icon: Icons.score,
-              iconColor: neonYellow,
-              content: ConfidenceChart(score: score),
-            ),
+            const SizedBox(height: 20),
 
-            // --- XAI: FORCE PLOT ---
-            DetailCard(
-              title: 'XAI - Etki Analizi (Force Plot)',
-              icon: Icons.bar_chart,
-              iconColor: neonYellow,
-              content: ForcePlotSimulator(
-                baseValue: 0.50,
-                finalScore: score / 100,
-                isAlert: widget.isAlert,
-                contributions: widget.isAlert
-                    ? [
-                        {
-                          'feature': 'Outbound Packet Rate',
-                          'value': 0.30,
-                          'isPositive': true
-                        },
-                        {
-                          'feature': 'Connection Time',
-                          'value': 0.15,
-                          'isPositive': true
-                        },
-                        {
-                          'feature': 'Normal Trafik (Negatif Etki)',
-                          'value': 0.035,
-                          'isPositive': false
-                        },
-                      ]
-                    : [],
+            // 2. Device Information Card (New)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(15),
               ),
-            ),
-
-            // --- XAI: SHAPLEY DEĞERLERİ (ETKİ FAKTÖRLERİ) ---
-            SettingsHeader('XAI: Etki Faktörleri (Özellik Listesi)'),
-
-            if (widget.isAlert) ...[
-              FactorBar(
-                  name: 'Outbound Packet Rate (%200 Artış)',
-                  percentage: 70,
-                  barColor: neonRed),
-              FactorBar(
-                  name: 'Connection Time', percentage: 25, barColor: neonRed),
-              FactorBar(
-                  name: 'Kullanım Dışı Protokol Girişi',
-                  percentage: 5,
-                  barColor: neonRed),
-            ] else ...[
-              FactorBar(
-                  name: 'Normal Veri Akışı',
-                  percentage: 95,
-                  barColor: neonGreen),
-              FactorBar(name: 'Hata Oranı', percentage: 5, barColor: textMuted),
-            ],
-
-            const SizedBox(height: 30),
-            // Acil Eylem Butonu
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(
-                            '${widget.deviceName} bağlantısı kesildi ve izole edildi.'),
-                        backgroundColor: neonRed),
-                  );
-                },
-                icon: const Icon(Icons.flash_off, color: darkBackground),
-                label: const Text('ACİL BAĞLANTIYI KES',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Cihaz Bilgileri",
                     style: TextStyle(
-                        color: darkBackground, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: neonRed,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
-                ),
+                        color: textLight,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  const Divider(color: textMuted),
+                  const SizedBox(height: 10),
+                  _buildInfoRow('Cihaz Adı', deviceName),
+                  _buildInfoRow('IP Adresi', ip),
+                  _buildInfoRow('Oda Numarası', room),
+                ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: textMuted, fontSize: 16)),
+          Text(value,
+              style: const TextStyle(
+                  color: textLight, fontWeight: FontWeight.bold, fontSize: 16)),
+        ],
       ),
     );
   }
@@ -2108,6 +2033,7 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
 
     final nameCtrl = TextEditingController();
     final ipCtrl = TextEditingController();
+    final roomCtrl = TextEditingController(); // New
 
     showDialog(
       context: context,
@@ -2130,6 +2056,13 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
               decoration: const InputDecoration(labelText: 'IP Adresi'),
             ),
             const SizedBox(height: 10),
+            TextField(
+              controller: roomCtrl,
+              style: const TextStyle(color: textLight),
+              decoration:
+                  const InputDecoration(labelText: 'Oda No (Opsiyonel)'),
+            ),
+            const SizedBox(height: 10),
             Text('Hastane: $_selectedHospitalCode',
                 style: const TextStyle(color: neonGreen)),
           ],
@@ -2142,7 +2075,10 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
             onPressed: () async {
               try {
                 await _api.createDevice(
-                    nameCtrl.text, ipCtrl.text, _selectedHospitalCode!);
+                    nameCtrl.text,
+                    ipCtrl.text,
+                    roomCtrl.text.isEmpty ? null : roomCtrl.text, // Pass Room
+                    _selectedHospitalCode!);
                 Navigator.pop(ctx);
                 _fetchDevices();
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -2162,13 +2098,12 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
     );
   }
 
-  void _navigateToDetail(
-      BuildContext context, String deviceName, bool isCurrentlyAlert) {
+  void _navigateToDetail(BuildContext context, Map<String, dynamic> device) {
+    // Pass full device object
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => DeviceDetailScreen(
-          deviceName: deviceName,
-          isAlert: isCurrentlyAlert,
+          device: device,
           userRole: _userRole ?? 'Teknik Personel',
         ),
       ),
@@ -2300,8 +2235,7 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
                               }
                             },
                             child: GestureDetector(
-                              onTap: () => _navigateToDetail(
-                                  context, d['name'] ?? 'Cihaz', isAlert),
+                              onTap: () => _navigateToDetail(context, d),
                               child: DeviceItem(
                                 name: d['name'] ?? 'Bilinmeyen Cihaz',
                                 status: isAlert ? 'ATTACK detected' : 'SAFE',

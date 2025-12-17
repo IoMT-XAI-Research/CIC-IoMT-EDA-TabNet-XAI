@@ -28,6 +28,7 @@ def create_device(
     device = models.Device(
         name=payload.name,
         ip_address=payload.ip_address,
+        room_number=payload.room_number, # Added
         status=models.DeviceStatus.SAFE,
         last_risk_score=0.0,
         hospital_id=hospital.id,

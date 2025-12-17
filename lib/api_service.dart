@@ -104,7 +104,8 @@ class ApiService {
     }
   }
 
-  Future<void> createDevice(String name, String ip, String hospitalCode) async {
+  Future<void> createDevice(
+      String name, String ip, String? room, String hospitalCode) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
     if (token == null) throw Exception('No token found');
@@ -119,6 +120,7 @@ class ApiService {
       body: jsonEncode({
         'name': name,
         'ip_address': ip,
+        'room_number': room,
         'hospital_unique_code': hospitalCode,
         'status': 'SAFE'
       }),
