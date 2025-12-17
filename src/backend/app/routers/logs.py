@@ -1,37 +1,34 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
 from typing import List
-from datetime import datetime
-
 from .. import models, schemas, database, dependencies
 
 router = APIRouter(
-    prefix="/logs",
+    prefix="/activity-logs",
     tags=["logs"]
 )
 
-def log_activity(db: Session, description: str):
-    """
-    Helper function to create an activity log entry.
-    """
-    new_log = models.ActivityLog(
+# HELPER FUNCTION
+def create_activity_log(db: Session, title: str, description: str, log_type: str, hospital_id: int = None):
+    log = models.ActivityLog(
+        title=title,
         description=description,
-        timestamp=datetime.utcnow()
+        log_type=log_type,
+        hospital_id=hospital_id
     )
-    db.add(new_log)
+    db.add(log)
     db.commit()
-    db.refresh(new_log)
-    return new_log
 
 @router.get("/", response_model=List[schemas.ActivityLogResponse])
-def read_logs(
-    skip: int = 0, 
-    limit: int = 100, 
+def get_activity_logs(
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(dependencies.get_current_user)
+    current_user: models.User = Depends(dependencies.get_current_user),
+    limit: int = 50
 ):
-    # Logs are generally viewable by all authenticated users, 
-    # but we could restrict if needed.
-    logs = db.query(models.ActivityLog).order_by(desc(models.ActivityLog.timestamp)).offset(skip).limit(limit).all()
-    return logs
+    # If Admin, show all. If User, show only their hospital's logs + general logs (hospital_id is None)
+    query = db.query(models.ActivityLog)
+    
+    if current_user.role != models.UserRole.ADMIN and current_user.hospital_id:
+         query = query.filter((models.ActivityLog.hospital_id == current_user.hospital_id) | (models.ActivityLog.hospital_id == None))
+    
+    return query.order_by(models.ActivityLog.timestamp.desc()).limit(limit).all()

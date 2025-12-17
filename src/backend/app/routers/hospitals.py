@@ -4,6 +4,7 @@ from typing import List
 
 from .. import models, schemas, database, dependencies
 from . import logs
+from .logs import create_activity_log
 
 router = APIRouter(
     prefix="/hospitals",
@@ -100,5 +101,5 @@ def delete_hospital(
 
     db.delete(db_hospital)
     db.commit()
-    logs.log_activity(db, f"Hospital Deleted: {db_hospital.name} by {current_user.email}")
+    create_activity_log(db, "Hastane Silindi", f"{db_hospital.name} silindi.", "WARNING")
     return None

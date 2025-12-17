@@ -8,6 +8,8 @@ from pydantic import BaseModel
 from app import models, schemas, dependencies   # 🔹 modeller + şemalar + current_user
 from app.database import get_db                 # 🔹 ortak get_db
 
+from .logs import create_activity_log
+
 router = APIRouter(
     prefix="/devices",
     tags=["devices"]
@@ -37,6 +39,9 @@ def create_device(
     db.add(device)
     db.commit()
     db.refresh(device)
+    
+    # LOGGING
+    create_activity_log(db, "Yeni Cihaz", f"{device.name} eklendi.", "INFO", hospital.id)
 
     return device
 
@@ -109,6 +114,8 @@ def isolate_device(
     db.add(event)
     db.commit()
     db.refresh(device)
+    
+    create_activity_log(db, "Cihaz İzole Edildi", f"{device.name} izole edildi.", "DANGER", device.hospital_id)
 
     return device
 
@@ -155,6 +162,10 @@ def delete_device(
              raise HTTPException(status_code=403, detail="Not authorized to delete this device")
 
     # 3. Delete
+    hospital_id = device.hospital_id
+    device_name = device.name
     db.delete(device)
     db.commit()
+    
+    create_activity_log(db, "Cihaz Silindi", f"{device_name} silindi.", "DANGER", hospital_id)
     return None

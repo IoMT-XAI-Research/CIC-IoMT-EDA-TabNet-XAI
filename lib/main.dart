@@ -2074,13 +2074,21 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: neonGreen),
             onPressed: () async {
               try {
-                await _api.createDevice(
+                final newDevice = await _api.createDevice(
                     nameCtrl.text,
                     ipCtrl.text,
                     roomCtrl.text.isEmpty ? null : roomCtrl.text, // Pass Room
                     _selectedHospitalCode!);
+
                 Navigator.pop(ctx);
-                _fetchDevices();
+
+                if (newDevice != null) {
+                  setState(() {
+                    // Directly add the object WITH the ID to the list
+                    _devices.add(newDevice);
+                  });
+                }
+
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('Cihaz Eklendi!'),
                     backgroundColor: neonGreen));
@@ -2274,72 +2282,127 @@ class ActivityLogScreen extends StatelessWidget {
       'color': neonRed
     },
     {
-      'time': '10:31',
-      'type': 'MÜDAHALE',
-      'device': 'Oksijen Sensörü - Oda 302',
-      'message': 'Acil İzolasyon Komutu Uygulandı (Kullanıcı: Admin)',
-      'icon': Icons.flash_off,
-      'color': accentBlue
-    },
-    {
-      'time': '09:00',
-      'type': 'DURUM',
-      'device': 'Akıllı Tansiyon Cihazı',
-      'message': 'Günlük Rapor: 12 saat stabil trafik.',
-      'icon': Icons.check_circle_outline,
-      'color': neonGreen
-    },
-    {
-      'time': 'Dün 14:00',
-      'type': 'HAFİF UYARI',
-      'device': 'İlaç Pompası - Dozaj 1',
-      'message': 'Anormal DNS sorgu sayısı (Düşük Risk)',
-      'icon': Icons.notification_important_outlined,
-      'color': neonYellow
-    },
-  ];
+class ActivityLogScreen extends StatefulWidget {
+  const ActivityLogScreen({Key? key}) : super(key: key);
+
+  @override
+  _ActivityLogScreenState createState() => _ActivityLogScreenState();
+}
+
+class _ActivityLogScreenState extends State<ActivityLogScreen> {
+  final ApiService _api = ApiService();
+  List<dynamic> _logs = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLogs();
+  }
+
+  Future<void> _fetchLogs() async {
+    try {
+      final logs = await _api.fetchActivityLogs();
+      if (mounted) {
+        setState(() {
+          _logs = logs;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Loglar yüklenemedi: $e')),
+          );
+      }
+    }
+  }
+
+  Color _getLogColor(String type) {
+    switch (type) {
+      case 'DANGER':
+        return neonRed;
+      case 'WARNING':
+        return Colors.orangeAccent;
+      case 'SUCCESS':
+        return neonGreen;
+      case 'INFO':
+      default:
+        return neonBlue;
+    }
+  }
+  
+  IconData _getLogIcon(String type) {
+    switch (type) {
+      case 'DANGER':
+        return Icons.dangerous;
+      case 'WARNING':
+        return Icons.warning_amber_rounded;
+      case 'SUCCESS':
+        return Icons.check_circle_outline;
+      case 'INFO':
+      default:
+        return Icons.info_outline;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Etkinlik Kayıtları',
+        title: const Text('Aktivite Logları',
             style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: darkBackground,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.only(top: 10.0),
-        itemCount: logEntries.length,
-        itemBuilder: (context, index) {
-          final log = logEntries[index];
-          return LogItem(log: log);
-        },
-      ),
-    );
-  }
-}
+      body: _isLoading
+          ? const Center(child: CircularCircularProgressIndicator(color: neonGreen))
+          : _logs.isEmpty
+              ? const Center(
+                  child: Text("Heniz bir aktivite kaydı yok.",
+                      style: TextStyle(color: textMuted)))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _logs.length,
+                  itemBuilder: (context, index) {
+                    final log = _logs[index];
+                    final String type = log['log_type'] ?? 'INFO';
+                    final Color color = _getLogColor(type);
+                    final String title = log['title'] ?? 'İşlem';
+                    final String desc = log['description'] ?? 'Detay yok';
+                    final String time = log['timestamp'] ?? '';
 
-class LogItem extends StatelessWidget {
-  final Map<String, dynamic> log;
-  const LogItem({super.key, required this.log});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: cardColor,
-      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: ListTile(
-        leading: Icon(log['icon'] as IconData, color: log['color'] as Color),
-        title: Text(log['message'] as String,
-            style: const TextStyle(color: textLight)),
-        subtitle: Text(
-            '${log['time']} | ${log['device']} | Tip: ${log['type']}',
-            style: TextStyle(color: textMuted, fontSize: 12)),
-        trailing: Text(log['time'] as String,
-            style: TextStyle(
-                color: log['color'] as Color, fontWeight: FontWeight.bold)),
-      ),
+                    return Card(
+                      color: cardColor,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(color: color.withOpacity(0.5), width: 1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: color.withOpacity(0.2),
+                          child: Icon(_getLogIcon(type), color: color),
+                        ),
+                        title: Text(title,
+                            style: const TextStyle(
+                                color: textLight, fontWeight: FontWeight.bold)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 5),
+                            Text(desc, style: const TextStyle(color: textMuted)),
+                            const SizedBox(height: 5),
+                            Text(time,
+                                style: TextStyle(
+                                    color: textMuted.withOpacity(0.5),
+                                    fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }

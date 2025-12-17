@@ -3,11 +3,12 @@ from typing import List, Optional, Dict, Any
 from .models import UserRole, DeviceStatus, EventType
 from datetime import datetime
 
-# Token Schemas
+# --- 8) TOKEN SCHEMA (Auth) ---
 class Token(BaseModel):
     access_token: str
     token_type: str
-    role: str
+    user_email: str
+    user_role: str
 
 class TokenData(BaseModel):
     user_id: Optional[int] = None

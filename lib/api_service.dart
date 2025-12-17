@@ -66,6 +66,27 @@ class ApiService {
     }
   }
 
+  Future<List<dynamic>> fetchActivityLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) throw Exception('No token found');
+
+    final url = Uri.parse('$baseUrl/activity-logs/');
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load logs: ${response.body}');
+    }
+  }
+
   Future<List<dynamic>> getHospitals() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -104,7 +125,7 @@ class ApiService {
     }
   }
 
-  Future<void> createDevice(
+  Future<Map<String, dynamic>> createDevice(
       String name, String ip, String? room, String hospitalCode) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -126,7 +147,9 @@ class ApiService {
       }),
     );
 
-    if (response.statusCode != 200 && response.statusCode != 201) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
       throw Exception('Failed to create device: ${response.body}');
     }
   }

@@ -86,6 +86,10 @@ class ActivityLog(Base):
     __tablename__ = "activity_logs"
 
     id = Column(Integer, primary_key=True, index=True)
+    title = Column(String) # New
     description = Column(String)
+    # log_type: SUCCESS, WARNING, DANGER, INFO
+    log_type = Column(String, default="INFO") 
     timestamp = Column(DateTime, default=datetime.utcnow)
+    hospital_id = Column(Integer, ForeignKey("hospitals.id"), nullable=True) # New
 
