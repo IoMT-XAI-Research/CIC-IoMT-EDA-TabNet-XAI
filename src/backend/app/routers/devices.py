@@ -136,3 +136,25 @@ def update_device_status(
         "device": device,
     }
 # --- BİTİŞ ---
+
+@router.delete("/{device_id}", status_code=204)
+def delete_device(
+    device_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(dependencies.get_current_user),
+):
+    # 1. Fetch the device
+    device = db.query(models.Device).filter(models.Device.id == device_id).first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    # 2. Authorization (Only Admin or Owner/Tech of that hospital)
+    # For simplicity in this fix, ensure user belongs to the same hospital or is Admin
+    if current_user.role != models.UserRole.ADMIN:
+         if device.hospital_id != current_user.hospital_id:
+             raise HTTPException(status_code=403, detail="Not authorized to delete this device")
+
+    # 3. Delete
+    db.delete(device)
+    db.commit()
+    return None
