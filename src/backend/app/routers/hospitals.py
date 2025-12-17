@@ -60,7 +60,13 @@ def create_hospital(
     db.add(new_hospital)
     db.commit()
     db.refresh(new_hospital)
-    logs.log_activity(db, f"Hospital Created: {new_hospital.name} ({new_hospital.unique_code}) by {current_user.email}")
+    
+    # LOGGING (Safe)
+    try:
+        create_activity_log(db, "Hastane Eklendi", f"{new_hospital.name} sisteme kaydedildi.", "SUCCESS")
+    except Exception as e:
+        print(f"Logging Error: {e}")
+
     return new_hospital
 
 @router.get("/", response_model=List[schemas.HospitalResponse])
@@ -101,5 +107,8 @@ def delete_hospital(
 
     db.delete(db_hospital)
     db.commit()
-    create_activity_log(db, "Hastane Silindi", f"{db_hospital.name} silindi.", "WARNING")
+    try:
+        create_activity_log(db, "Hastane Silindi", f"{db_hospital.name} silindi.", "WARNING")
+    except Exception as e:
+        print(f"Logging Error: {e}")
     return None
