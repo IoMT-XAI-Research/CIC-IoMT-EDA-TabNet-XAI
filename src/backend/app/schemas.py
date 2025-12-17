@@ -96,3 +96,16 @@ class EventResponse(EventBase):
     hospital_id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+# Activity Log Schemas
+class ActivityLogBase(BaseModel):
+    description: str
+
+class ActivityLogCreate(ActivityLogBase):
+    pass
+
+class ActivityLogResponse(ActivityLogBase):
+    id: int
+    timestamp: datetime
+
+    model_config = ConfigDict(from_attributes=True)

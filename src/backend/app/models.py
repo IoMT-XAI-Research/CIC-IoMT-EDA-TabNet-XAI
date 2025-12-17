@@ -80,3 +80,11 @@ class Analysis(Base):
     xai_data = Column(JSON) # Stores SHAP values and other XAI data
 
     device = relationship("Device", back_populates="analyses")
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    description = Column(String)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
