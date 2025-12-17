@@ -85,14 +85,28 @@ def seed_data(db: Session = Depends(database.get_db)):
 def reset_database(db: Session = Depends(database.get_db)):
     """
     Resets the database completely:
-    1. Drops all tables
-    2. Recreates all tables
-    3. Leaves database empty (No seeding)
+    1. Attempts standard drop_all
+    2. Fallback: Forcefully drops public schema and recreates it (PostgreSQL only)
+    3. Recreates all tables
     """
-    # Drop all tables
-    database.Base.metadata.drop_all(bind=database.engine)
+    from sqlalchemy import text
     
-    # Re-create all tables
-    database.Base.metadata.create_all(bind=database.engine)
+    try:
+        # Option 1: Try standard drop first
+        database.Base.metadata.drop_all(bind=database.engine)
+        database.Base.metadata.create_all(bind=database.engine)
+    except Exception as e:
+        print(f"Standard drop failed ({e}), attempting force drop...")
+        # Option 2: Fallback to Nuclear Option (Force Drop Schema)
+        if "postgresql" in str(database.engine.url):
+             with database.engine.connect() as connection:
+                connection.execute(text("DROP SCHEMA public CASCADE;"))
+                connection.execute(text("CREATE SCHEMA public;"))
+                connection.commit()
+             # Re-create tables after schema reset
+             database.Base.metadata.create_all(bind=database.engine)
+        else:
+             # If SQLite or other, re-raise the original error
+             raise e
     
     return {"message": "Database successfully reset and wiped clean."}
