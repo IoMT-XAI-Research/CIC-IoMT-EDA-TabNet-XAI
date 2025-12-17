@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'api_service.dart';
 import 'dart:async';
@@ -1773,10 +1774,20 @@ class _HospitalManagementScreenState extends State<HospitalManagementScreen> {
   List<dynamic> _hospitals = [];
   bool _isLoading = true;
 
+  String? _userRole;
+
   @override
   void initState() {
     super.initState();
+    _loadRole();
     _fetchHospitals();
+  }
+
+  Future<void> _loadRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userRole = prefs.getString('user_role');
+    });
   }
 
   Future<void> _fetchHospitals() async {
@@ -1796,6 +1807,7 @@ class _HospitalManagementScreenState extends State<HospitalManagementScreen> {
   }
 
   void _showAddHospitalDialog() {
+    // ... dialog code ...
     final nameCtrl = TextEditingController();
     final codeCtrl = TextEditingController();
 
@@ -1857,6 +1869,7 @@ class _HospitalManagementScreenState extends State<HospitalManagementScreen> {
   }
 
   void _showEditHospitalDialog(Map<String, dynamic> hospital) {
+    // ... edit dialog code ...
     final nameCtrl = TextEditingController(text: hospital['name']);
     final codeCtrl = TextEditingController(text: hospital['unique_code']);
 
@@ -1974,6 +1987,8 @@ class _HospitalManagementScreenState extends State<HospitalManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    bool isAdmin = _userRole == 'UserRole.ADMIN' || _userRole == 'ADMIN';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hastane Yönetimi',
@@ -1997,19 +2012,23 @@ class _HospitalManagementScreenState extends State<HospitalManagementScreen> {
                             color: textLight, fontWeight: FontWeight.bold)),
                     subtitle: Text(h['unique_code'] ?? '',
                         style: const TextStyle(color: textMuted)),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit, color: textMuted),
-                      onPressed: () => _showEditHospitalDialog(h),
-                    ),
+                    trailing: isAdmin
+                        ? IconButton(
+                            icon: const Icon(Icons.edit, color: textMuted),
+                            onPressed: () => _showEditHospitalDialog(h),
+                          )
+                        : null,
                   ),
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: neonGreen,
-        onPressed: _showAddHospitalDialog,
-        child: const Icon(Icons.add, color: darkBackground),
-      ),
+      floatingActionButton: isAdmin
+          ? FloatingActionButton(
+              backgroundColor: neonGreen,
+              onPressed: _showAddHospitalDialog,
+              child: const Icon(Icons.add, color: darkBackground),
+            )
+          : null,
     );
   }
 }
@@ -2031,6 +2050,8 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
   String? _selectedHospitalCode;
   bool _isLoading = false;
 
+  String? _userRole;
+
   @override
   void initState() {
     super.initState();
@@ -2039,6 +2060,9 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
 
   Future<void> _loadInitialData() async {
     setState(() => _isLoading = true);
+    final prefs = await SharedPreferences.getInstance();
+    _userRole = prefs.getString('user_role');
+
     try {
       final hospitals = await _api.getHospitals();
       setState(() {
@@ -2075,6 +2099,7 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
   }
 
   void _showAddDeviceDialog() {
+    // ... dialog code ...
     if (_selectedHospitalCode == null) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Lütfen önce bir hastane seçin.')));
@@ -2144,7 +2169,7 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
         builder: (context) => DeviceDetailScreen(
           deviceName: deviceName,
           isAlert: isCurrentlyAlert,
-          userRole: 'Teknik Personel',
+          userRole: _userRole ?? 'Teknik Personel',
         ),
       ),
     );
@@ -2152,6 +2177,8 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    bool isAdmin = _userRole == 'UserRole.ADMIN' || _userRole == 'ADMIN';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cihaz Envanteri',
@@ -2209,13 +2236,77 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
                         itemBuilder: (ctx, i) {
                           final d = _devices[i];
                           final isAlert = (d['status'] == 'ATTACK');
-                          return GestureDetector(
-                            onTap: () => _navigateToDetail(
-                                context, d['name'] ?? 'Cihaz', isAlert),
-                            child: DeviceItem(
-                              name: d['name'] ?? 'Bilinmeyen Cihaz',
-                              status: isAlert ? 'ATTACK detected' : 'SAFE',
-                              isAlert: isAlert,
+                          final deviceId = d['id'];
+
+                          return Dismissible(
+                            key: Key(deviceId.toString()),
+                            direction: isAdmin
+                                ? DismissDirection.endToStart
+                                : DismissDirection.none,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20.0),
+                              color: neonRed,
+                              child:
+                                  const Icon(Icons.delete, color: Colors.white),
+                            ),
+                            confirmDismiss: (direction) async {
+                              return await showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    backgroundColor: cardColor,
+                                    title: const Text("Cihazı Sil?",
+                                        style: TextStyle(color: textLight)),
+                                    content: const Text(
+                                        "Bu cihazı silmek istediğinize emin misiniz?",
+                                        style: TextStyle(color: textMuted)),
+                                    actions: <Widget>[
+                                      TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(false),
+                                          child: const Text("İptal",
+                                              style:
+                                                  TextStyle(color: textMuted))),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(true),
+                                        child: const Text("SİL",
+                                            style: TextStyle(
+                                                color: neonRed,
+                                                fontWeight: FontWeight.bold)),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                            onDismissed: (direction) async {
+                              try {
+                                await _api.deleteDevice(deviceId);
+                                setState(() {
+                                  _devices.removeAt(i);
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text("Cihaz silindi"),
+                                        backgroundColor: neonGreen));
+                              } catch (e) {
+                                _fetchDevices(); // Refresh list on error
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text("Hata: $e"),
+                                        backgroundColor: neonRed));
+                              }
+                            },
+                            child: GestureDetector(
+                              onTap: () => _navigateToDetail(
+                                  context, d['name'] ?? 'Cihaz', isAlert),
+                              child: DeviceItem(
+                                name: d['name'] ?? 'Bilinmeyen Cihaz',
+                                status: isAlert ? 'ATTACK detected' : 'SAFE',
+                                isAlert: isAlert,
+                              ),
                             ),
                           );
                         },
@@ -2223,11 +2314,13 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: neonGreen,
-        onPressed: _showAddDeviceDialog,
-        child: const Icon(Icons.add, color: darkBackground),
-      ),
+      floatingActionButton: isAdmin
+          ? FloatingActionButton(
+              backgroundColor: neonGreen,
+              onPressed: _showAddDeviceDialog,
+              child: const Icon(Icons.add, color: darkBackground),
+            )
+          : null,
     );
   }
 }

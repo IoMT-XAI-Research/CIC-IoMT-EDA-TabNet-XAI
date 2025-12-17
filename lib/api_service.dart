@@ -30,9 +30,12 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final token = data['access_token'];
+        final role = data['role'] ?? 'TECH_STAFF'; // Default to tech
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', token);
-        print('Token saved successfully');
+        await prefs.setString('user_role', role);
+        print('Token and Role ($role) saved successfully');
       } else {
         throw Exception('Failed to login: ${response.body}');
       }
@@ -96,7 +99,7 @@ class ApiService {
       body: jsonEncode({'name': name, 'unique_code': uniqueCode}),
     );
 
-    if (response.statusCode != 201) {
+    if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Failed to create hospital: ${response.body}');
     }
   }
@@ -121,7 +124,7 @@ class ApiService {
       }),
     );
 
-    if (response.statusCode != 201) {
+    if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Failed to create device: ${response.body}');
     }
   }
@@ -161,6 +164,24 @@ class ApiService {
 
     if (response.statusCode != 204) {
       throw Exception('Failed to delete hospital: ${response.body}');
+    }
+  }
+
+  Future<void> deleteDevice(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) throw Exception('No token found');
+
+    final url = Uri.parse('$baseUrl/devices/$id');
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode != 204) {
+      throw Exception('Failed to delete device: ${response.body}');
     }
   }
 
