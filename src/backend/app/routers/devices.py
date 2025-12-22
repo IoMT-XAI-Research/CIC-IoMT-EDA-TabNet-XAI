@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 
-from app import models, schemas, dependencies   # 🔹 modeller + şemalar + current_user
-from app.database import get_db                 # 🔹 ortak get_db
+from .. import models, schemas, dependencies   # 🔹 modeller + şemalar + current_user
+from src.backend.app.database import get_db                 # 🔹 ortak get_db
 
 from .logs import create_activity_log
 

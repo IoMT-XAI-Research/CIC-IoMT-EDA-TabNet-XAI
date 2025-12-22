@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .routers import auth, devices, analysis, websocket, prediction, hospitals, admin, logs
 from .services.ai_engine import ai_engine
-from app.database import SessionLocal
-from app import models
+from .database import SessionLocal
+from . import models
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
