@@ -50,10 +50,45 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
         manager.disconnect(websocket, hospital_id)
 
 # Internal endpoint to trigger alerts (Simulation)
+# Internal endpoint to trigger alerts (Simulation)
 @router.post("/internal/report-attack")
-async def report_attack(event: dict):
-    # event should contain hospital_id, device_id, score, etc.
-    hospital_id = event.get("hospital_id")
+async def report_attack(
+    payload: dict,
+    db: Session = Depends(dependencies.get_db)  # Need DB for logging
+):
+    # Payload structure:
+    # {
+    #   "prediction": { "is_attack": bool, "probability": float, ... },
+    #   "flow_details": { "timestamp": float, ... },
+    #   "explanation": [ ... ],
+    #   "hospital_id": int,  <-- We need this injected by the script or inferred
+    #   "device_id": int     <-- We need this injected by the script or inferred
+    # }
+    
+    # For now, let's assume the script sends 'hospital_id' in the root or flow_details.
+    # If not present, we might broadcast to ALL or just skip.
+    hospital_id = payload.get("hospital_id")
+    
+    # Broadcast to relevant hospital
     if hospital_id:
-        await manager.broadcast_to_hospital(event, hospital_id)
-    return {"status": "alert sent"}
+        await manager.broadcast_to_hospital(payload, hospital_id)
+        
+    # Check for Attack and Log
+    prediction = payload.get("prediction", {})
+    if prediction.get("is_attack"):
+        # Create DANGER log
+        from .logs import create_activity_log
+        
+        device_id = payload.get("device_id")
+        device_name = f"Device {device_id}" if device_id else "Unknown Device"
+        prob = prediction.get("probability", 0.0)
+        
+        create_activity_log(
+            db, 
+            "KRİTİK SALDIRI TESPİTİ", 
+            f"{device_name} üzerinde saldırı tespit edildi! (Güven: {prob:.2f})", 
+            "DANGER", 
+            hospital_id
+        )
+        
+    return {"status": "alert processed"}

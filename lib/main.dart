@@ -5,17 +5,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'api_service.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 // ANA RENKLER
 
 const Color darkBackground = Color(0xFF121212);
 const Color cardColor = Color(0xFF242424);
-const Color neonGreen = Color(0xFF00FF41);
-const Color neonRed = Color(0xFFFF073A);
+const Color neonGreen = Color(0xFF00E676);
+const Color neonRed = Color(0xFFFF0055);
+const Color neonBlue = Color(0xFF00E5FF);
+const Color neonYellow = Color(0xFFFFD600);
 const Color textLight = Color(0xFFE0E0E0);
 const Color textMuted = Color(0xFFAAAAAA);
 const Color accentBlue = Color(0xFF00BFFF);
-const Color neonYellow = Color(0xFFFFD700);
 
 //ANA UYGULAMA BAŞLANGICI VE FIREBASE
 
@@ -913,6 +916,16 @@ class _DashboardScreenState extends State<DashboardScreen>
           Tooltip(
             message: userEmail,
             child: const Icon(Icons.verified_user, color: neonGreen),
+          ),
+          IconButton(
+            icon: const Icon(Icons.monitor_heart, color: neonRed),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (context) => const MonitoringScreen()),
+              );
+            },
+            tooltip: 'AI Monitör',
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: textMuted),
@@ -2267,21 +2280,6 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
   }
 }
 
-// 14. ETKİNLİK KAYIT DEFTERİ EKRANI (YENİ EKLENDİ - Aşama 2)
-
-class ActivityLogScreen extends StatelessWidget {
-  const ActivityLogScreen({super.key});
-
-  final List<Map<String, dynamic>> logEntries = const [
-    {
-      'time': '10:30',
-      'type': 'KRİTİK UYARI',
-      'device': 'Oksijen Sensörü - Oda 302',
-      'message': 'DDoS Saldırısı Tespit Edildi (Güven Skoru: 98.5%)',
-      'icon': Icons.warning_amber_rounded,
-      'color': neonRed
-    },
-    {
 class ActivityLogScreen extends StatefulWidget {
   const ActivityLogScreen({Key? key}) : super(key: key);
 
@@ -2311,10 +2309,10 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
       }
     } catch (e) {
       if (mounted) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Loglar yüklenemedi: $e')),
-          );
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Loglar yüklenemedi: $e')),
+        );
       }
     }
   }
@@ -2332,7 +2330,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
         return neonBlue;
     }
   }
-  
+
   IconData _getLogIcon(String type) {
     switch (type) {
       case 'DANGER':
@@ -2356,7 +2354,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
         backgroundColor: darkBackground,
       ),
       body: _isLoading
-          ? const Center(child: CircularCircularProgressIndicator(color: neonGreen))
+          ? const Center(child: CircularProgressIndicator(color: neonGreen))
           : _logs.isEmpty
               ? const Center(
                   child: Text("Heniz bir aktivite kaydı yok.",
@@ -2370,13 +2368,24 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                     final Color color = _getLogColor(type);
                     final String title = log['title'] ?? 'İşlem';
                     final String desc = log['description'] ?? 'Detay yok';
-                    final String time = log['timestamp'] ?? '';
+
+                    String time = '';
+                    if (log['timestamp'] != null) {
+                      try {
+                        final dt = DateTime.parse(log['timestamp']).toLocal();
+                        time =
+                            "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+                      } catch (e) {
+                        time = log['timestamp'];
+                      }
+                    }
 
                     return Card(
                       color: cardColor,
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(
-                        side: BorderSide(color: color.withOpacity(0.5), width: 1),
+                        side:
+                            BorderSide(color: color.withOpacity(0.5), width: 1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: ListTile(
@@ -2391,7 +2400,8 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 5),
-                            Text(desc, style: const TextStyle(color: textMuted)),
+                            Text(desc,
+                                style: const TextStyle(color: textMuted)),
                             const SizedBox(height: 5),
                             Text(time,
                                 style: TextStyle(
@@ -2522,6 +2532,279 @@ class _ForcePlotBlock extends StatelessWidget {
             color: Colors.white,
             size: 14,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// 15. GERÇEK ZAMANLI İZLEME EKRANI (AI MONITOR)
+
+class MonitoringScreen extends StatefulWidget {
+  const MonitoringScreen({Key? key}) : super(key: key);
+
+  @override
+  _MonitoringScreenState createState() => _MonitoringScreenState();
+}
+
+class _MonitoringScreenState extends State<MonitoringScreen> {
+  final ApiService _api = ApiService();
+  WebSocket? _socket;
+  Map<String, dynamic>? _currentData;
+  bool _isConnected = false;
+  String _statusMessage = "Sunucuya bağlanılıyor...";
+  List<Map<String, dynamic>> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _connectToStream();
+  }
+
+  @override
+  void dispose() {
+    _socket?.close();
+    super.dispose();
+  }
+
+  Future<void> _connectToStream() async {
+    try {
+      _socket = await _api.connectToAlertStream();
+      setState(() {
+        _isConnected = true;
+        _statusMessage = "Sistem İzleniyor...";
+      });
+
+      _socket!.listen(
+        (data) {
+          final decoded = jsonDecode(data);
+          if (mounted) {
+            setState(() {
+              _currentData = decoded;
+              _history.insert(0, decoded);
+              if (_history.length > 10) _history.removeLast();
+            });
+          }
+        },
+        onError: (e) {
+          if (mounted) setState(() => _statusMessage = "Bağlantı Hatası: $e");
+        },
+        onDone: () {
+          if (mounted) setState(() => _isConnected = false);
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isConnected = false;
+          _statusMessage = "Bağlantı Başarısız: $e";
+        });
+      }
+    }
+  }
+
+  Color _getRiskColor(double probability) {
+    if (probability > 0.8) return neonRed;
+    if (probability > 0.5) return Colors.orange;
+    return neonGreen;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Extract Data
+    final prediction = _currentData?['prediction'] ?? {};
+    final bool isAttack = prediction['is_attack'] ?? false;
+    final double probability = prediction['probability'] ?? 0.0;
+    final explanations = _currentData?['explanation'] as List? ?? [];
+    final flowDetails = _currentData?['flow_details'] ?? {};
+
+    Color risksColor = _getRiskColor(probability);
+    String statusText = isAttack ? "KRİTİK TEHDİT ALGILANDI" : "GÜVENLİ TRAFİK";
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("AI Saldırı Monitörü"),
+        backgroundColor: darkBackground,
+        actions: [
+          Container(
+            margin: const EdgeInsets.all(10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: _isConnected
+                  ? neonGreen.withOpacity(0.2)
+                  : neonRed.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _isConnected ? neonGreen : neonRed),
+            ),
+            child: Row(
+              children: [
+                Icon(_isConnected ? Icons.wifi : Icons.wifi_off,
+                    size: 16, color: _isConnected ? neonGreen : neonRed),
+                const SizedBox(width: 5),
+                Text(_isConnected ? "CANLI" : "OFFLINE",
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: _isConnected ? neonGreen : neonRed)),
+              ],
+            ),
+          )
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // 1. GAUGE / SCORE CARD
+            Card(
+              color: cardColor,
+              shape: RoundedRectangleBorder(
+                  side: BorderSide(color: risksColor, width: 2),
+                  borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 150,
+                          height: 150,
+                          child: CircularProgressIndicator(
+                            value: probability,
+                            strokeWidth: 15,
+                            color: risksColor,
+                            backgroundColor: Colors.grey[800],
+                          ),
+                        ),
+                        Column(
+                          children: [
+                            Text("${(probability * 100).toStringAsFixed(1)}%",
+                                style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: risksColor)),
+                            const Text("Risk Skoru",
+                                style: TextStyle(color: textMuted)),
+                          ],
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Text(statusText,
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: risksColor,
+                            shadows: [
+                              Shadow(color: risksColor, blurRadius: 10)
+                            ])),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 2. XAI EXPLANATION CHART
+            if (isAttack && explanations.isNotEmpty) ...[
+              const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text("🛑 Saldırı Nedenleri (XAI)",
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold))),
+              const SizedBox(height: 10),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: explanations.length > 5 ? 5 : explanations.length,
+                itemBuilder: (context, index) {
+                  final exp = explanations[index];
+                  final double impact = (exp['impact_value'] as num)
+                      .toDouble()
+                      .abs(); // Normalize for width
+                  final bool positive = (exp['direction'] == 'Positive');
+                  // Positive impact for Attack class usually means it contributed to 'Attack' prediction -> RED
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(8)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(exp['feature'],
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                            Text(
+                                "${exp['impact_value'].toStringAsFixed(4)} (${exp['direction']})",
+                                style: const TextStyle(
+                                    fontSize: 12, color: textMuted)),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        // Bar
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: (impact * 100).toInt(),
+                              child: Container(
+                                  height: 8,
+                                  color: positive ? neonRed : neonGreen),
+                            ),
+                            Expanded(
+                              flex: 100 - (impact * 100).toInt(),
+                              child: Container(
+                                  height: 8, color: Colors.transparent),
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ] else if (_isConnected) ...[
+              const Center(
+                  child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: Text("✅ Sistem Normal. Anormali tespit edilmedi.",
+                    style: TextStyle(color: neonGreen)),
+              ))
+            ],
+
+            const SizedBox(height: 20),
+
+            // 3. FLOW DETAILS
+            Theme(
+              data:
+                  Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                title: const Text("📡 Ağ Trafik Detayları"),
+                children: [
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                        color: Colors.black26,
+                        borderRadius: BorderRadius.circular(8)),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(jsonEncode(flowDetails),
+                          style: const TextStyle(
+                              fontFamily: 'Courier',
+                              color: textLight,
+                              fontSize: 12)),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

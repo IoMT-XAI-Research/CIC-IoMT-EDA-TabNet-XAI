@@ -1,10 +1,27 @@
 import 'dart:convert';
+import 'dart:io'; // Native WebSocket support
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Using Render Production URL
-  static const String baseUrl = 'https://cic-iomt-eda-tabnet-xai.onrender.com';
+  final String baseUrl =
+      'http://127.0.0.1:8000'; // Emulator için 10.0.2.2, Simülatör için 127.0.0.1
+
+  // WebSocket Connection
+  Future<WebSocket> connectToAlertStream() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) throw Exception('No token found');
+
+    String wsUrl = baseUrl.replaceFirst('http', 'ws');
+    String url = '$wsUrl/ws/alerts?token=$token';
+
+    try {
+      return await WebSocket.connect(url);
+    } catch (e) {
+      throw Exception("WebSocket Connection Failed: $e");
+    }
+  }
 
   Future<void> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/login');
