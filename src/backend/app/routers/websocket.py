@@ -1,5 +1,6 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
 from typing import List, Dict
+from sqlalchemy.orm import Session
 from .. import dependencies, models, auth
 from jose import jwt, JWTError
 
