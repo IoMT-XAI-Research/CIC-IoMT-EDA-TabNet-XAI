@@ -13,21 +13,37 @@ class ConnectionManager:
     def __init__(self):
         # Map hospital_id to list of websockets
         self.active_connections: Dict[int, List[WebSocket]] = {}
+        # List of Global Admin websockets (receive EVERYTHING)
+        self.admin_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket, hospital_id: int):
         await websocket.accept()
         if hospital_id not in self.active_connections:
             self.active_connections[hospital_id] = []
         self.active_connections[hospital_id].append(websocket)
+        
+    async def connect_admin(self, websocket: WebSocket):
+        await websocket.accept()
+        self.admin_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket, hospital_id: int):
         if hospital_id in self.active_connections:
-            self.active_connections[hospital_id].remove(websocket)
+            if websocket in self.active_connections[hospital_id]:
+                self.active_connections[hospital_id].remove(websocket)
+    
+    def disconnect_admin(self, websocket: WebSocket):
+        if websocket in self.admin_connections:
+            self.admin_connections.remove(websocket)
 
     async def broadcast_to_hospital(self, message: dict, hospital_id: int):
+        # 1. Send to Specific Hospital Staff
         if hospital_id in self.active_connections:
             for connection in self.active_connections[hospital_id]:
                 await connection.send_json(message)
+        
+        # 2. Send to ALL Global Admins
+        for connection in self.admin_connections:
+            await connection.send_json(message)
 
 manager = ConnectionManager()
 
@@ -35,20 +51,39 @@ manager = ConnectionManager()
 async def websocket_endpoint(websocket: WebSocket, token: str):
     try:
         payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
-        hospital_id: int = payload.get("hospital_id")
-        if hospital_id is None:
-            await websocket.close(code=1008)
-            return
+        role: str = payload.get("role")
+        hospital_id = payload.get("hospital_id")
+        
+        # Logic:
+        # If ADMIN -> Global Listener (regardless of hospital_id)
+        # If NOT ADMIN -> strict hospital_id isolation
+        
+        if role == "ADMIN":
+            await manager.connect_admin(websocket)
+            try:
+                while True:
+                    await websocket.receive_text()
+            except WebSocketDisconnect:
+                manager.disconnect_admin(websocket)
+        else:
+            if hospital_id is None:
+                # Regular user with no hospital? Reject.
+                await websocket.close(code=1008)
+                return
+                
+            await manager.connect(websocket, int(hospital_id))
+            try:
+                while True:
+                    await websocket.receive_text()
+            except WebSocketDisconnect:
+                manager.disconnect(websocket, int(hospital_id))
+            
     except JWTError:
         await websocket.close(code=1008)
         return
-
-    await manager.connect(websocket, hospital_id)
-    try:
-        while True:
-            await websocket.receive_text() # Keep connection open
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, hospital_id)
+    except Exception as e:
+        print(f"WS Error: {e}")
+        await websocket.close(code=1011)
 
 # Internal endpoint to trigger alerts (Simulation)
 @router.post("/internal/report-attack")
@@ -67,11 +102,12 @@ async def report_attack(
     
     hospital_id = payload.get("hospital_id")
     
-    # STRICT ISOLATION: Broadcast ONLY to the specific hospital channel
+    # Broadcast (To Hospital Staff AND Admins)
     if hospital_id and isinstance(hospital_id, int):
         await manager.broadcast_to_hospital(payload, hospital_id)
     else:
-        # If no hospital_id or invalid, strictly do NOT broadcast globally.
+        # If no hospital_id, perhaps broadcast ONLY to admins?
+        # For now, let's keep it safe and strictly require hospital_id even for admins to see context.
         pass
         
     # Check for Attack and Log
