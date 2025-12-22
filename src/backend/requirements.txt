@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlalchemy
 psycopg2-binary
 python-jose[cryptography]
@@ -11,4 +11,3 @@ joblib
 scikit-learn
 numpy
 pandas
-websockets
