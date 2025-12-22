@@ -17,13 +17,13 @@ class ConnectionManager:
         self.admin_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket, hospital_id: int):
-        await websocket.accept()
+        # WebSocket is already accepted in endpoint
         if hospital_id not in self.active_connections:
             self.active_connections[hospital_id] = []
         self.active_connections[hospital_id].append(websocket)
         
     async def connect_admin(self, websocket: WebSocket):
-        await websocket.accept()
+        # WebSocket is already accepted in endpoint
         self.admin_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket, hospital_id: int):
@@ -49,6 +49,9 @@ manager = ConnectionManager()
 
 @router.websocket("/alerts")
 async def websocket_endpoint(websocket: WebSocket, token: str):
+    # ACCEPT IMMEDIATELY to complete handshake
+    await websocket.accept()
+    
     try:
         payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
         role: str = payload.get("role")
@@ -81,6 +84,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                 manager.disconnect(websocket, int(hospital_id))
             
     except JWTError:
+        print("WS Token Error")
         await websocket.close(code=1008)
         return
     except Exception as e:

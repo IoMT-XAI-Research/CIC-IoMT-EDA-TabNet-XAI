@@ -2569,35 +2569,69 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
 
   Future<void> _connectToStream() async {
     try {
-      _socket = await _api.connectToAlertStream();
+      setState(() => _statusMessage = "Bağlantı başlatılıyor...");
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token');
+
+      if (token == null) {
+        print("❌ HATA: Token bulunamadı!");
+        setState(() => _statusMessage = "Hata: Giriş yapılmamış");
+        return;
+      }
+
+      // Render adresin (Standart WSS)
+      // Adresi '/ws/internal/ws' olarak güncelliyoruz (Simülasyon ile uyumlu olması için)
+      // Yanlış olan (Internal) adresi sil, bunu yapıştır:
+      final wsUrl = Uri.parse(
+          'wss://cic-iomt-eda-tabnet-xai.onrender.com/ws/alerts?token=$token');
+
+      print("🔗 Bağlanılıyor: $wsUrl");
+
+      // Basit Bağlantı (Header yok, Port yok - Standart)
+      _socket = await WebSocket.connect(wsUrl.toString());
+
+      // Ping ayarı (Bağlantıyı canlı tutmak için)
+      _socket!.pingInterval = const Duration(seconds: 10);
+
+      print("✅ WEBSOCKET BAĞLANDI! (Nihayet!)");
+
       setState(() {
         _isConnected = true;
-        _statusMessage = "Sistem İzleniyor...";
+        _statusMessage = "Sistem Canlı İzleniyor...";
       });
 
       _socket!.listen(
         (data) {
-          final decoded = jsonDecode(data);
-          if (mounted) {
-            setState(() {
-              _currentData = decoded;
-              _history.insert(0, decoded);
-              if (_history.length > 10) _history.removeLast();
-            });
+          print("📥 VERİ: $data"); // Terminalde veri akışını göreceksin
+          try {
+            final decoded = jsonDecode(data);
+            if (mounted) {
+              setState(() {
+                _currentData = decoded;
+                _history.insert(0, decoded);
+                if (_history.length > 10) _history.removeLast();
+              });
+            }
+          } catch (e) {
+            print("⚠️ JSON Hatası: $e");
           }
         },
         onError: (e) {
-          if (mounted) setState(() => _statusMessage = "Bağlantı Hatası: $e");
+          print("❌ WebSocket Hatası: $e");
+          if (mounted) setState(() => _statusMessage = "Hata: $e");
         },
         onDone: () {
+          print("⚠️ Bağlantı Koptu");
           if (mounted) setState(() => _isConnected = false);
         },
       );
     } catch (e) {
+      print("❌ BAĞLANTI REDDEDİLDİ: $e");
       if (mounted) {
         setState(() {
           _isConnected = false;
-          _statusMessage = "Bağlantı Başarısız: $e";
+          _statusMessage = "Sunucu Bağlantıyı Reddetti (Yetki Yok)";
         });
       }
     }
@@ -2720,9 +2754,12 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 itemCount: explanations.length > 5 ? 5 : explanations.length,
                 itemBuilder: (context, index) {
                   final exp = explanations[index];
-                  final double impact = (exp['impact_value'] as num)
-                      .toDouble()
-                      .abs(); // Normalize for width
+                  double impactRaw =
+                      (exp['impact_value'] as num).toDouble().abs();
+                  final double impact =
+                      (impactRaw.isNaN || impactRaw.isInfinite)
+                          ? 0.0
+                          : impactRaw; // Normalize for width
                   final bool positive = (exp['direction'] == 'Positive');
                   // Positive impact for Attack class usually means it contributed to 'Attack' prediction -> RED
 
