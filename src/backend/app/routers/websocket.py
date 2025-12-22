@@ -54,11 +54,13 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
         role: str = payload.get("role")
         hospital_id = payload.get("hospital_id")
         
+        print(f"WS Connection Attempt: Payload={payload}")
+        
         # Logic:
         # If ADMIN -> Global Listener (regardless of hospital_id)
         # If NOT ADMIN -> strict hospital_id isolation
         
-        if role == "ADMIN":
+        if role == "ADMIN" or role == "UserRole.ADMIN":
             await manager.connect_admin(websocket)
             try:
                 while True:
