@@ -13,7 +13,8 @@ from pytorch_tabnet.tab_model import TabNetClassifier
 import shap
 
 # Configuration
-BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000/ws/internal/report-attack")
+# Render adresini buraya yapıştırıyoruz (https olmasına dikkat et)
+BACKEND_URL = "https://cic-iomt-eda-tabnet-xai.onrender.com/ws/internal/report-attack"
 ARTIFACTS_DIR = "artifacts"
 DATA_DIR = "data/raw/WiFi_and_MQTT/test"
 HOSPITAL_ID = 1 # Dummy ID from seed.py

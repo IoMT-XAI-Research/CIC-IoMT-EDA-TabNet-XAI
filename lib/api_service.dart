@@ -4,8 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  final String baseUrl =
-      'http://127.0.0.1:8000'; // Emulator için 10.0.2.2, Simülatör için 127.0.0.1
+  final String baseUrl = 'https://cic-iomt-eda-tabnet-xai.onrender.com';
 
   // WebSocket Connection
   Future<WebSocket> connectToAlertStream() async {
