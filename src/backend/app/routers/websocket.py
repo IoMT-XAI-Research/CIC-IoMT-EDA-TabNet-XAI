@@ -51,7 +51,6 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
         manager.disconnect(websocket, hospital_id)
 
 # Internal endpoint to trigger alerts (Simulation)
-# Internal endpoint to trigger alerts (Simulation)
 @router.post("/internal/report-attack")
 async def report_attack(
     payload: dict,
@@ -62,17 +61,18 @@ async def report_attack(
     #   "prediction": { "is_attack": bool, "probability": float, ... },
     #   "flow_details": { "timestamp": float, ... },
     #   "explanation": [ ... ],
-    #   "hospital_id": int,  <-- We need this injected by the script or inferred
-    #   "device_id": int     <-- We need this injected by the script or inferred
+    #   "hospital_id": int,  <-- REQUIRED for isolation
+    #   "device_id": int     <-- REQUIRED for identification
     # }
     
-    # For now, let's assume the script sends 'hospital_id' in the root or flow_details.
-    # If not present, we might broadcast to ALL or just skip.
     hospital_id = payload.get("hospital_id")
     
-    # Broadcast to relevant hospital
-    if hospital_id:
+    # STRICT ISOLATION: Broadcast ONLY to the specific hospital channel
+    if hospital_id and isinstance(hospital_id, int):
         await manager.broadcast_to_hospital(payload, hospital_id)
+    else:
+        # If no hospital_id or invalid, strictly do NOT broadcast globally.
+        pass
         
     # Check for Attack and Log
     prediction = payload.get("prediction", {})
