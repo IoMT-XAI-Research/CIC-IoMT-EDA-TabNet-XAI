@@ -107,13 +107,33 @@ async def report_attack(
     # }
     
     hospital_id = payload.get("hospital_id")
+    device_id = payload.get("device_id")
+    
+    # DYNAMIC LOOKUP: If IDs are missing, try to find device by IP
+    if not hospital_id or not device_id:
+        target_ip = payload.get("device_ip")
+        if not target_ip:
+            # Fallback to flow_details
+            flow = payload.get("flow_details", {})
+            target_ip = flow.get("dst_ip")
+            
+        if target_ip:
+            device = db.query(models.Device).filter(models.Device.ip_address == target_ip).first()
+            if device:
+                print(f"[WS] Validated Device: {device.name} (ID: {device.id}, Hospital: {device.hospital_id})")
+                hospital_id = device.hospital_id
+                device_id = device.id
+                # Update payload so frontend receives correct context
+                payload["hospital_id"] = hospital_id
+                payload["device_id"] = device_id
+            else:
+                print(f"[WS] WARNING: Device with IP {target_ip} not found in DB.")
     
     # Broadcast (To Hospital Staff AND Admins)
     if hospital_id and isinstance(hospital_id, int):
         await manager.broadcast_to_hospital(payload, hospital_id)
     else:
-        # If no hospital_id, perhaps broadcast ONLY to admins?
-        # For now, let's keep it safe and strictly require hospital_id even for admins to see context.
+        # If still no hospital_id, perhaps broadcast ONLY to admins?
         pass
         
     # Check for Attack and Log

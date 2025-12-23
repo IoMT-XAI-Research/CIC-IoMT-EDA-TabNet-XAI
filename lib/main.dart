@@ -918,16 +918,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             child: const Icon(Icons.verified_user, color: neonGreen),
           ),
           IconButton(
-            icon: const Icon(Icons.monitor_heart, color: neonRed),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (context) => const MonitoringScreen()),
-              );
-            },
-            tooltip: 'AI Monitör',
-          ),
-          IconButton(
             icon: const Icon(Icons.logout, color: textMuted),
             onPressed: () => FirebaseAuth.instance.signOut(),
           ),
@@ -962,7 +952,11 @@ class _DashboardScreenState extends State<DashboardScreen>
       ),
       bottomNavigationBar: NavBar(
         // Artık alarm backend'ten geldiği için, bu butonu kullanmak zorunda değilsin.
-        onSimulate: () {},
+        onSimulate: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const MonitoringScreen()),
+          );
+        },
         onNavigate: (index) {
           if (index == 2) {
             // Hospitals
@@ -2583,8 +2577,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
       // Render adresin (Standart WSS)
       // Adresi '/ws/internal/ws' olarak güncelliyoruz (Simülasyon ile uyumlu olması için)
       // Yanlış olan (Internal) adresi sil, bunu yapıştır:
-      final wsUrl = Uri.parse(
-          'wss://cic-iomt-eda-tabnet-xai.onrender.com/ws/alerts?token=$token');
+      final wsUrl = Uri.parse('wss://iomtbackend.space/ws/alerts?token=$token');
 
       print("🔗 Bağlanılıyor: $wsUrl");
 
@@ -2754,14 +2747,26 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 itemCount: explanations.length > 5 ? 5 : explanations.length,
                 itemBuilder: (context, index) {
                   final exp = explanations[index];
-                  double impactRaw =
-                      (exp['impact_value'] as num).toDouble().abs();
-                  final double impact =
-                      (impactRaw.isNaN || impactRaw.isInfinite)
-                          ? 0.0
-                          : impactRaw; // Normalize for width
-                  final bool positive = (exp['direction'] == 'Positive');
-                  // Positive impact for Attack class usually means it contributed to 'Attack' prediction -> RED
+
+                  // FIXED: Handle both 'percentage' (Azure) and 'impact_value' (Legacy)
+                  // Use [0.0] as default if null.
+                  var impactRaw = exp['percentage'] ?? exp['impact_value'];
+
+                  double impact = 0.0;
+                  if (impactRaw != null) {
+                    if (impactRaw is num) {
+                      impact = impactRaw.toDouble().abs();
+                    } else if (impactRaw is String) {
+                      impact = double.tryParse(impactRaw)?.abs() ?? 0.0;
+                    }
+                  }
+
+                  // Handle Infinite/NaN
+                  if (impact.isNaN || impact.isInfinite) impact = 0.0;
+
+                  // Direction handling (optional, dependent on backend)
+                  final bool positive =
+                      true; // Simplified for now since 'direction' might be missing in new payload
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
@@ -2775,11 +2780,10 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(exp['feature'],
+                            Text(exp['name'] ?? exp['feature'] ?? 'Unknown',
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold)),
-                            Text(
-                                "${exp['impact_value'].toStringAsFixed(4)} (${exp['direction']})",
+                            Text("${impact.toStringAsFixed(4)}",
                                 style: const TextStyle(
                                     fontSize: 12, color: textMuted)),
                           ],
@@ -2789,13 +2793,13 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                         Row(
                           children: [
                             Expanded(
-                              flex: (impact * 100).toInt(),
+                              flex: (impact * 100).clamp(0, 100).toInt(),
                               child: Container(
                                   height: 8,
                                   color: positive ? neonRed : neonGreen),
                             ),
                             Expanded(
-                              flex: 100 - (impact * 100).toInt(),
+                              flex: 100 - (impact * 100).clamp(0, 100).toInt(),
                               child: Container(
                                   height: 8, color: Colors.transparent),
                             )

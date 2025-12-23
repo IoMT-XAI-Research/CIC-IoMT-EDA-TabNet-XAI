@@ -13,10 +13,14 @@ from pytorch_tabnet.tab_model import TabNetClassifier
 import shap
 
 # Configuration
-# Render Backend URL
-BACKEND_URL = "https://cic-iomt-eda-tabnet-xai.onrender.com/ws/internal/report-attack"
+# Azure Backend URL
+BACKEND_URL = "https://iomtbackend.space/ws/internal/report-attack"
 ARTIFACTS_DIR = "artifacts"
 DATA_DIR = "data/raw/WiFi_and_MQTT/test"
+
+# Simulation Constants
+HOSPITAL_ID = 1
+DEVICE_ID = 1
 
 def load_artifacts():
     print("[INFO] Loading artifacts...")
@@ -139,8 +143,11 @@ def simulate(target_ip):
                     
                     xai_plot, top_features = generate_shap_plot(clf, X, feature_names)
                     
-                    # PAYLOAD GÜNCELLENDİ: args.ip yerine target_ip kullanılıyor
+                    # PAYLOAD GÜNCELLENDİ: Azure Backend formatına uygun
                     payload = {
+                        # ID'leri GÖNDERMİYORUZ (Backend IP'den bulacak)
+                        #"hospital_id": HOSPITAL_ID,
+                        #"device_id": DEVICE_ID,
                         "device_ip": target_ip, 
                         "prediction": {
                             "is_attack": True,

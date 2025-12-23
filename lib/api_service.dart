@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  final String baseUrl = 'https://cic-iomt-eda-tabnet-xai.onrender.com';
+  final String baseUrl = 'https://iomtbackend.space';
 
   // WebSocket Connection
   Future<WebSocket> connectToAlertStream() async {
