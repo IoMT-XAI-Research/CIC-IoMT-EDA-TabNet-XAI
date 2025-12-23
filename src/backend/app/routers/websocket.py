@@ -63,26 +63,31 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
         # If ADMIN -> Global Listener (regardless of hospital_id)
         # If NOT ADMIN -> strict hospital_id isolation
         
-        if role == "ADMIN" or role == "UserRole.ADMIN":
+        user_email = payload.get("sub")
+        
+        # Determine Role and Connections
+        # FIX: Only treat as Global Admin if role is ADMIN AND hospital_id is None.
+        if (role == "ADMIN" or role == "UserRole.ADMIN") and hospital_id is None:
             await manager.connect_admin(websocket)
+            print(f"WS: Global Admin connected. (User: {user_email})")
             try:
                 while True:
                     await websocket.receive_text()
             except WebSocketDisconnect:
                 manager.disconnect_admin(websocket)
-        else:
-            if hospital_id is None:
-                # Regular user with no hospital? Reject.
-                await websocket.close(code=1008)
-                return
-                
+        elif hospital_id is not None:
+             # Tech Staff OR Hospital Admin
             await manager.connect(websocket, int(hospital_id))
+            print(f"WS: User connected to Hospital {hospital_id}. (Role: {role})")
             try:
                 while True:
                     await websocket.receive_text()
             except WebSocketDisconnect:
                 manager.disconnect(websocket, int(hospital_id))
-            
+        else:
+            await websocket.close(code=1008)
+            return
+
     except JWTError:
         print("WS Token Error")
         await websocket.close(code=1008)
@@ -143,8 +148,9 @@ async def report_attack(
         pass
         
     # Check for Attack and Log
+    # FIX: ONLY Log if hospital_id is valid! Unregistered devices should not pollute logs.
     prediction = payload.get("prediction", {})
-    if prediction.get("is_attack"):
+    if prediction.get("is_attack") and hospital_id:
         # Create DANGER log
         from .logs import create_activity_log
         
@@ -163,5 +169,7 @@ async def report_attack(
             "DANGER", 
             hospital_id
         )
+    elif prediction.get("is_attack"):
+        print("[WS] Skipped Logging: Attack on Unregistered Device.")
         
     return {"status": "alert processed"}
