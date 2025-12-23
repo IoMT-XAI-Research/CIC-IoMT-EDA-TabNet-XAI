@@ -2747,13 +2747,11 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Hedef Cihaz",
-                              style: TextStyle(color: textMuted, fontSize: 12)),
+                          const Text("Hedef Cihaz", style: TextStyle(color: textMuted, fontSize: 12)),
                           const SizedBox(height: 4),
                           Text(
                             _currentData?['device_name'] ?? 'Bilinmiyor',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -2771,15 +2769,11 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Saldırı Türü",
-                              style: TextStyle(color: textMuted, fontSize: 12)),
+                          const Text("Saldırı Türü", style: TextStyle(color: textMuted, fontSize: 12)),
                           const SizedBox(height: 4),
                           Text(
                             _currentData?['attack_type'] ?? 'Genel Saldırı',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: neonRed),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: neonRed),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -2789,7 +2783,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 ],
               ),
             ],
-
+            
             const SizedBox(height: 20),
 
             // 2. XAI EXPLANATION CHART
