@@ -2733,6 +2733,65 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
 
             const SizedBox(height: 20),
 
+            // 1.5. DEVICE INFO & ATTACK TYPE
+            if (isAttack) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Hedef Cihaz",
+                              style: TextStyle(color: textMuted, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Text(
+                            _currentData?['device_name'] ?? 'Bilinmiyor',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Saldırı Türü",
+                              style: TextStyle(color: textMuted, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Text(
+                            _currentData?['attack_type'] ?? 'Genel Saldırı',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: neonRed),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            const SizedBox(height: 20),
+
             // 2. XAI EXPLANATION CHART
             if (isAttack && explanations.isNotEmpty) ...[
               const Align(

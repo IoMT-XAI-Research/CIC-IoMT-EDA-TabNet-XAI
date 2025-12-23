@@ -155,7 +155,8 @@ def simulate(target_ip):
                         },
                         "explanation": top_features,
                         "flow_details": row.to_dict(),
-                        "message": f"Saldırı Tespit Edildi: {pred_label}"
+                        "message": f"Saldırı Tespit Edildi: {pred_label}",
+                        "attack_type": pred_label # Explicit Attack Type
                     }
                     
                     try:

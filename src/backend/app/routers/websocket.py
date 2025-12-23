@@ -126,6 +126,7 @@ async def report_attack(
                 # Update payload so frontend receives correct context
                 payload["hospital_id"] = hospital_id
                 payload["device_id"] = device_id
+                payload["device_name"] = device.name  # Inject Name for UI
             else:
                 print(f"[WS] WARNING: Device with IP {target_ip} not found in DB.")
     
@@ -143,13 +144,17 @@ async def report_attack(
         from .logs import create_activity_log
         
         device_id = payload.get("device_id")
-        device_name = f"Device {device_id}" if device_id else "Unknown Device"
+        device_name = payload.get("device_name") # Use injected name
+        if not device_name:
+             device_name = f"Device {device_id}" if device_id else "Unknown Device"
+             
         prob = prediction.get("probability", 0.0)
+        attack_type = payload.get("attack_type", "Saldırı") # Get attack type if available
         
         create_activity_log(
             db, 
             "KRİTİK SALDIRI TESPİTİ", 
-            f"{device_name} üzerinde saldırı tespit edildi! (Güven: {prob:.2f})", 
+            f"{device_name} üzerinde {attack_type} tespit edildi! (Güven: {prob:.2f})", 
             "DANGER", 
             hospital_id
         )
