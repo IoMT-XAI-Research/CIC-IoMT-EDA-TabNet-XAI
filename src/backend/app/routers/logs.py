@@ -28,19 +28,24 @@ def get_activity_logs(
     # If Admin, show all. If User, show only their hospital's logs + general logs (hospital_id is None)
     query = db.query(models.ActivityLog)
     
-    # REFINED LOGIC:
-    # 1. If user belongs to a hospital (regardless of role), show ONLY that hospital's logs.
-    # 2. If user has NO hospital (Global User):
-    #    - If ADMIN: Show ALL logs.
-    #    - If not ADMIN: Show NOTHING (Strict Isolation).
-    
-    if current_user.hospital_id:
+    # DEBUG LOGGING (Nuclear Isolation Check)
+    print(f"[LOGS] User {current_user.id} ({current_user.email}) Role: {current_user.role}, Hospital ID: {current_user.hospital_id}")
+
+    # NUCLEAR ISOLATION LOGIC:
+    # 1. Hospital Assignment TRUMPS Admin Role.
+    #    If a user has a hospital_id (e.g., 2), they MUST be restricted to that hospital.
+    #    It does NOT matter if they are an ADMIN. They are an Admin of *that* hospital.
+    if current_user.hospital_id is not None:
         query = query.filter(models.ActivityLog.hospital_id == current_user.hospital_id)
+        
+    # 2. Only if hospital_id is None (Global User) do we check Role.
     elif current_user.role == models.UserRole.ADMIN:
         # Super Admin sees everything
         pass
+        
+    # 3. Everyone else (Global non-admin?) sees NOTHING.
     else:
-        # Global non-admin sees nothing
+        # Strict Isolation
         query = query.filter(models.ActivityLog.hospital_id == -1)
     
     return query.order_by(models.ActivityLog.timestamp.desc()).limit(limit).all()
