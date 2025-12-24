@@ -1326,50 +1326,103 @@ class StatusArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color = isAlert ? neonRed : neonGreen;
-    String text = isAlert ? 'SALDIRI TESPİT EDİLDİ!' : 'SİSTEM GÜVENLİ';
+    // Dynamic Logic
+    final Color primaryColor = isAlert ? neonRed : neonGreen;
+    final int score = isAlert ? 45 : 98;
+    final String statusLabel = isAlert ? "TEHDİT ALGILANDI" : "SİSTEM GÜVENLİ";
+    final String subLabel =
+        isAlert ? "System Status: Critical" : "System Status: Secure";
 
     return Center(
       child: Column(
         children: [
+          // GAUGE CIRCLE
           AnimatedBuilder(
             animation: controller,
             builder: (context, child) {
-              double blurRadius = isAlert ? 40 * controller.value : 25;
-              double spreadRadius = isAlert ? 5 * controller.value : 0;
-
               return Container(
-                width: 180,
-                height: 180,
+                width: 220,
+                height: 220,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: color, width: 4),
+                  // Gradient Background
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      primaryColor.withOpacity(0.15),
+                      primaryColor.withOpacity(0.05),
+                    ],
+                  ),
+                  // Animated Border
+                  border: Border.all(
+                    color: primaryColor
+                        .withOpacity(0.6 + (0.4 * controller.value)),
+                    width: 3,
+                  ),
+                  // Pulsing Glow
                   boxShadow: [
                     BoxShadow(
-                      color: color
-                          .withOpacity(isAlert ? controller.value * 0.8 : 0.4),
-                      blurRadius: blurRadius,
-                      spreadRadius: spreadRadius,
+                      color: primaryColor.withOpacity(0.3 * controller.value),
+                      blurRadius: 20 + (15 * controller.value),
+                      spreadRadius: 2 * controller.value,
                     ),
                   ],
                 ),
                 child: Center(
-                  child: Text(
-                    text,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Percentage Text
+                      Text(
+                        "$score%",
+                        style: const TextStyle(
+                            fontSize: 64,
+                            fontWeight: FontWeight.bold,
+                            color: textLight,
+                            shadows: [
+                              Shadow(
+                                  color: Colors.black54,
+                                  blurRadius: 4,
+                                  offset: Offset(2, 2))
+                            ]),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        "Güvenlik Skoru",
+                        style: TextStyle(
+                          color: textMuted,
+                          fontSize: 14,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
             },
           ),
-          const SizedBox(height: 10),
-          const Text('Genel IoMT Güvenlik Durumu',
-              style: TextStyle(color: textMuted)),
+
+          const SizedBox(height: 25),
+
+          // STATUS TEXT under the gauge
+          Text(
+            statusLabel,
+            style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: primaryColor,
+                letterSpacing: 1.5,
+                shadows: [
+                  Shadow(color: primaryColor.withOpacity(0.5), blurRadius: 10)
+                ]),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            subLabel,
+            style: const TextStyle(
+                color: textMuted, fontSize: 14, fontStyle: FontStyle.italic),
+          ),
         ],
       ),
     );
@@ -2747,11 +2800,13 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Hedef Cihaz", style: TextStyle(color: textMuted, fontSize: 12)),
+                          const Text("Hedef Cihaz",
+                              style: TextStyle(color: textMuted, fontSize: 12)),
                           const SizedBox(height: 4),
                           Text(
                             _currentData?['device_name'] ?? 'Bilinmiyor',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -2769,11 +2824,15 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Saldırı Türü", style: TextStyle(color: textMuted, fontSize: 12)),
+                          const Text("Saldırı Türü",
+                              style: TextStyle(color: textMuted, fontSize: 12)),
                           const SizedBox(height: 4),
                           Text(
                             _currentData?['attack_type'] ?? 'Genel Saldırı',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: neonRed),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: neonRed),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -2783,7 +2842,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 ],
               ),
             ],
-            
+
             const SizedBox(height: 20),
 
             // 2. XAI EXPLANATION CHART
