@@ -17,34 +17,6 @@ app = FastAPI(title="IoMT IDS Backend")
 async def startup_event():
     # Load AI Model
     ai_engine.load_model()
-    
-    # Start Background Task for Status Cleanup
-    import asyncio
-    from datetime import datetime, timedelta
-    
-    async def cleanup_stale_attacks():
-        while True:
-            await asyncio.sleep(5)  # Check every 5 seconds
-            try:
-                db = SessionLocal()
-                # Find devices that are ATTACK but haven't been updated in 10s
-                cutoff = datetime.utcnow() - timedelta(seconds=10)
-                stale_devices = db.query(models.Device).filter(
-                    models.Device.status == models.DeviceStatus.ATTACK,
-                    models.Device.last_updated < cutoff
-                ).all()
-                
-                if stale_devices:
-                    print(f"[{datetime.utcnow()}] Auto-Recovering {len(stale_devices)} devices...")
-                    for device in stale_devices:
-                        device.status = models.DeviceStatus.SAFE
-                        device.last_risk_score = 0.0
-                    db.commit()
-                db.close()
-            except Exception as e:
-                print(f"Cleanup Error: {e}")
-
-    asyncio.create_task(cleanup_stale_attacks())
     # Note: Database seeding is now handled via /admin/seed endpoint
 
 # CORS Configuration

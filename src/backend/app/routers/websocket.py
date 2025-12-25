@@ -140,28 +140,6 @@ async def report_attack(
                 # For now, we trust the logic, but in strict mode we might want to reject unknown IPs.
                 pass
     
-    # Check for Attack and Log
-    is_attack = payload.get("prediction", {}).get("is_attack", False)
-    
-    if is_attack and device_id:
-        # Update Device Status in DB
-        device = db.query(models.Device).filter(models.Device.id == device_id).first()
-        if device:
-            device.status = models.DeviceStatus.ATTACK
-            device.last_risk_score = payload.get("prediction", {}).get("probability", 0.95) * 100
-            device.last_updated = datetime.utcnow()  # Update Heartbeat
-            db.commit()
-
-        # Log to Activity Log (Nuclear Isolation enforced by hospital_id provided above)
-        new_log = models.ActivityLog(
-            title="Saldırı Tespit Edildi",
-            description=f"Cihaz: {payload.get('device_name', 'Bilinmiyor')} (ID: {device_id}) - Tehdit: {payload.get('explanation', ['Bilinmiyor'])[0]}",
-            log_type="DANGER",
-            hospital_id=hospital_id 
-        )
-        db.add(new_log)
-        db.commit()
-    
     # Broadcast (To Hospital Staff AND Admins)
     if hospital_id and isinstance(hospital_id, int):
         await manager.broadcast_to_hospital(payload, hospital_id)

@@ -53,7 +53,6 @@ class Device(Base):
     room_number = Column(String, nullable=True) # New Field
     status = Column(Enum(DeviceStatus), default=DeviceStatus.SAFE)
     last_risk_score = Column(Float, default=0.0)
-    last_updated = Column(DateTime, default=datetime.utcnow)
     hospital_id = Column(Integer, ForeignKey("hospitals.id"))
 
     hospital = relationship("Hospital", back_populates="devices")

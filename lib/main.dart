@@ -751,7 +751,6 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   // ✅ Periyodik kontrol için Timer
   Timer? _pollTimer;
-  int _activeAttackCount = 0; // GLOBAL HEALTH STATE
 
   void _setAlertState(bool newIsAlert) {
     if (newIsAlert == isAlert) return; // Aynı duruma tekrar geçme
@@ -822,55 +821,38 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
   }
 
-  // ✅ GLOBAL HEALTH MONITORING: Scan ALL hospitals/devices
+  // ✅ Backend'teki /devices listesini çek ve id=1'in status'una göre isAlert'i ayarla
   Future<void> _checkAttackStatus() async {
     try {
+      // Demo: Fetch hospitals first, pick first one, then check devices.
       final hospitals = await _apiService.getHospitals();
       if (hospitals.isEmpty) return;
 
-      int totalAttacks = 0;
-      bool anyAttack = false;
+      // We could select a specific hospital here if we had state for it
+      // For now just checking the first one as before
+      final devices = await _apiService.getDevices(hospitals[0]['unique_code']);
 
-      for (var hospital in hospitals) {
-        if (!mounted) return;
-        try {
-          final devices = await _apiService.getDevices(hospital['unique_code']);
+      // Burada demo için id = 1 cihazı hedef kabul ediyoruz.
+      dynamic target;
+      try {
+        target = devices.firstWhere((d) => d['id'] == 1);
+      } catch (_) {
+        target = null;
+      }
 
-          for (var device in devices) {
-            // .trim() ekleyerek gizli boşluk hatalarını engelliyoruz
-            final String status =
-                (device['status'] ?? '').toString().trim().toUpperCase();
-
-            if (status == 'ATTACK') {
-              totalAttacks++;
-              anyAttack = true;
-            }
-          }
-        } catch (e) {
-          debugPrint('Cihaz Kontrol Hatası (${hospital['unique_code']}): $e');
-        }
+      bool newIsAlert = false;
+      if (target != null) {
+        final status = (target['status'] ?? '').toString().toUpperCase();
+        newIsAlert = status == 'ATTACK';
       }
 
       if (!mounted) return;
 
-      final bool previousAlertState = isAlert; // Capture previous state
-
-      setState(() {
-        _activeAttackCount = totalAttacks;
-        // Immediate UI Update as requested
-        isAlert = anyAttack;
-      });
-
-      // Manual Popup Logic since isAlert is already updated
-      if (anyAttack && !previousAlertState) {
-        _showAttackPopup();
-      } else if (!anyAttack && previousAlertState && _isDialogOpen) {
-        // Close popup if it was open
-        Navigator.of(context, rootNavigator: true).pop();
-        _isDialogOpen = false;
-      }
+// Yeni helper fonksiyonu kullan
+      _setAlertState(newIsAlert);
     } catch (e) {
-      debugPrint('Global İzleme Hatası: $e');
+      // Demo sırasında ortalığı kirletmemek için sadece logla
+      debugPrint('Attack status check error: $e');
     }
   }
 
@@ -937,14 +919,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: textMuted),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              }
-            },
+            onPressed: () => FirebaseAuth.instance.signOut(),
           ),
         ],
       ),
@@ -959,10 +934,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 InfoCard(title: 'Toplam Cihaz', value: '$_deviceCount'),
-                InfoCard(
-                  title: '24s Olağandışı Trafik',
-                  value: '$_activeAttackCount',
-                ),
+                const InfoCard(title: '24s Olağandışı Trafik', value: '0'),
               ],
             ),
             const SizedBox(height: 30),
@@ -1026,62 +998,12 @@ class DeviceDetailScreen extends StatefulWidget {
 }
 
 class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
-  late Map<String, dynamic> _device;
-  Timer? _timer;
-  final ApiService _api = ApiService();
-
-  @override
-  void initState() {
-    super.initState();
-    _device = widget.device;
-    // Poll for status updates
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (mounted) _fetchDeviceStatus();
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _fetchDeviceStatus() async {
-    try {
-      // Global scan to find the device by name (fallback if ID missing) or ID
-      final hospitals = await _api.getHospitals();
-      for (var hospital in hospitals) {
-        final devices = await _api.getDevices(hospital['unique_code']);
-
-        // Match by Name. Ideally by ID but widget.device['id'] might be missing in some flows
-        // For strict robustness, we match Name.
-        final match = devices.firstWhere(
-            (d) => d['name'] == widget.device['name'],
-            orElse: () => null);
-
-        if (match != null) {
-          if (mounted) {
-            setState(() {
-              _device = match;
-            });
-          }
-          return; // Stop scanning once found
-        }
-      }
-    } catch (e) {
-      debugPrint("Detail Poll Error: $e");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final deviceName = _device['name'] ?? 'Bilinmiyor';
-    final ip = _device['ip_address'] ?? ' - ';
-    final room = _device['room_number'] ?? 'Atanmamış';
-
-    // Robust parsing
-    final status =
-        (_device['status'] ?? 'SAFE').toString().trim().toUpperCase();
+    final deviceName = widget.device['name'] ?? 'Bilinmiyor';
+    final ip = widget.device['ip_address'] ?? ' - ';
+    final room = widget.device['room_number'] ?? 'Atanmamış';
+    final status = widget.device['status'] ?? 'SAFE';
     bool isAlert = (status == 'ATTACK');
 
     return Scaffold(
@@ -1126,7 +1048,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
                   ),
                   const SizedBox(height: 15),
                   Text(
-                    isAlert ? 'KRİTİK TEHDİT ALGILANDI' : 'GÜVENLİ',
+                    isAlert ? 'TEHDİT ALGILANDI' : 'GÜVENLİ',
                     style: TextStyle(
                       color: isAlert ? neonRed : neonGreen,
                       fontSize: 24,
@@ -1408,6 +1330,8 @@ class StatusArea extends StatelessWidget {
     final Color primaryColor = isAlert ? neonRed : neonGreen;
     final int score = isAlert ? 45 : 98;
     final String statusLabel = isAlert ? "TEHDİT ALGILANDI" : "SİSTEM GÜVENLİ";
+    final String subLabel =
+        isAlert ? "System Status: Critical" : "System Status: Secure";
 
     return Center(
       child: Column(
@@ -1492,6 +1416,12 @@ class StatusArea extends StatelessWidget {
                 shadows: [
                   Shadow(color: primaryColor.withOpacity(0.5), blurRadius: 10)
                 ]),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            subLabel,
+            style: const TextStyle(
+                color: textMuted, fontSize: 14, fontStyle: FontStyle.italic),
           ),
         ],
       ),
@@ -2106,24 +2036,11 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
   bool _isLoading = false;
 
   String? _userRole;
-  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _loadInitialData();
-    // Start Polling every 3 seconds
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (mounted && _selectedHospitalCode != null) {
-        _fetchDevices(silent: true);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
   }
 
   Future<void> _loadInitialData() async {
@@ -2151,18 +2068,18 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
     }
   }
 
-  Future<void> _fetchDevices({bool silent = false}) async {
+  Future<void> _fetchDevices() async {
     if (_selectedHospitalCode == null) return;
-    if (!silent) setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
     try {
       final devices = await _api.getDevices(_selectedHospitalCode!);
-      if (mounted) setState(() => _devices = devices);
+      setState(() => _devices = devices);
     } catch (e) {
-      if (mounted && !silent)
+      if (mounted)
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Cihazlar alınamadı: $e')));
     } finally {
-      if (mounted && !silent) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -2321,12 +2238,7 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
                         itemCount: _devices.length,
                         itemBuilder: (ctx, i) {
                           final d = _devices[i];
-                          // Robust parsing
-                          final status = (d['status'] ?? 'SAFE')
-                              .toString()
-                              .trim()
-                              .toUpperCase();
-                          final isAlert = (status == 'ATTACK');
+                          final isAlert = (d['status'] == 'ATTACK');
                           final deviceId = d['id'];
 
                           return Dismissible(
@@ -2392,57 +2304,10 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
                             },
                             child: GestureDetector(
                               onTap: () => _navigateToDetail(context, d),
-                              child: Card(
-                                color: cardColor,
-                                margin: const EdgeInsets.only(bottom: 12),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    side: isAlert
-                                        ? const BorderSide(
-                                            color: neonRed, width: 2)
-                                        : BorderSide.none),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: isAlert
-                                        ? neonRed.withOpacity(0.2)
-                                        : neonGreen.withOpacity(0.1),
-                                    child: Icon(
-                                        isAlert
-                                            ? Icons.warning_amber_rounded
-                                            : Icons.devices,
-                                        color: isAlert ? neonRed : neonGreen),
-                                  ),
-                                  title: Text(d['name'] ?? 'Bilinmiyor',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: textLight)),
-                                  subtitle: Text(
-                                      'IP: ${d['ip_address'] ?? '-'}',
-                                      style: const TextStyle(color: textMuted)),
-                                  trailing: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: isAlert ? neonRed : neonGreen,
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                            color: isAlert
-                                                ? neonRed.withOpacity(0.5)
-                                                : neonGreen.withOpacity(0.5),
-                                            blurRadius: 8,
-                                            spreadRadius: 1)
-                                      ],
-                                    ),
-                                    child: Text(
-                                      isAlert ? 'SALDIRI' : 'GÜVENLİ',
-                                      style: const TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12),
-                                    ),
-                                  ),
-                                ),
+                              child: DeviceItem(
+                                name: d['name'] ?? 'Bilinmeyen Cihaz',
+                                status: isAlert ? 'ATTACK detected' : 'SAFE',
+                                isAlert: isAlert,
                               ),
                             ),
                           );
