@@ -69,19 +69,14 @@ def read_devices(
         if current_user.hospital_id != hospital.id:
              raise HTTPException(status_code=403, detail="Not authorized to view devices for this hospital")
 
-    try:
-        devices = (
-            db.query(models.Device)
-            .filter(models.Device.hospital_id == hospital.id)
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
-        return devices
-    except Exception as e:
-        print(f"CRITICAL DB ERROR in /devices/: {e}")
-        # Return empty list or raise 500? Use 500 to signal retry or check logs
-        raise HTTPException(status_code=500, detail=f"Database Error: {str(e)}")
+    devices = (
+        db.query(models.Device)
+        .filter(models.Device.hospital_id == hospital.id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return devices
 
 
 # --- 3) Cihaz izole etme ---
