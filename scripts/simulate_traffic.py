@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-IoMT Traffic Simulator - Chaos Mode Edition
-============================================
+IoMT Traffic Simulator - Chaos Mode Edition v2.0
+=================================================
 This script simulates realistic network traffic by mixing packets from
 multiple attack/benign CSV files randomly. This provides a more realistic
 test scenario compared to sequential file replay.
@@ -11,6 +11,8 @@ Features:
 - Mobile-Ready Payloads: JSON format optimized for Flutter app
 - SHAP Explanations: Top features for AI transparency
 - Console Feedback: Shows source file for each packet
+- Confidence Threshold: Filters out low-confidence predictions
+- Ground Truth Validation: Compares predictions vs filename labels
 """
 
 import time
@@ -40,6 +42,9 @@ MAX_ROWS_PER_FILE = 1000  # Load up to 1000 rows per file for mixing
 ATTACK_DELAY = 1.5        # Seconds to wait after sending an attack alert
 BENIGN_DELAY = 0.05       # Faster processing for benign traffic
 
+# Confidence Threshold - predictions below this are treated as Benign
+MIN_CONFIDENCE_THRESHOLD = 0.60  # 60%
+
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
@@ -67,7 +72,7 @@ def load_artifacts():
 
 def preprocess_row(row, label_encoders, feature_names):
     """Preprocess a single row for model inference."""
-    cols_to_drop = ['source_file', 'basename', 'SubType', 'Flow ID', 
+    cols_to_drop = ['_source_file', 'source_file', 'basename', 'SubType', 'Flow ID', 
                     'Src IP', 'Dst IP', 'Timestamp', 'Label', 'Protocol']
     row = row.copy()
     for col in cols_to_drop:
@@ -96,10 +101,14 @@ def preprocess_row(row, label_encoders, feature_names):
 def safe_scalar(val):
     """Safely convert numpy/torch values to Python float."""
     try:
+        if val is None:
+            return 0.0
         if hasattr(val, 'item'):
             return float(val.item())
         if isinstance(val, (list, np.ndarray)):
             val = np.array(val)
+            if val.size == 0:
+                return 0.0
             if val.size == 1:
                 return float(val.item())
             return float(val.flatten()[0])
@@ -109,38 +118,82 @@ def safe_scalar(val):
 
 
 def generate_shap_explanation(clf, X_sample, feature_names):
-    """Generate SHAP explanation for a prediction."""
-    background = np.zeros((1, X_sample.shape[1]))
-    explainer = shap.KernelExplainer(clf.predict_proba, background)
-    shap_values = explainer.shap_values(X_sample, nsamples=100)
-    
-    probs = clf.predict_proba(X_sample)[0]
-    pred_idx = np.argmax(probs)
-    
-    # Handle different SHAP output formats
-    vals = None
-    if isinstance(shap_values, list):
-        if pred_idx < len(shap_values):
-            vals = shap_values[pred_idx][0]
-        else:
-            vals = shap_values[0][0] if len(shap_values) == 1 else shap_values[-1][0]
-    else:
-        vals = shap_values[0]
-
-    # Build feature importance list
-    feature_importance = []
-    for name, val in zip(feature_names, vals):
-        scalar_val = safe_scalar(val)
-        feature_importance.append({
-            "name": name,
-            "contribution": round(scalar_val, 4),
-            "impact": "positive" if scalar_val > 0 else "negative"
-        })
+    """
+    Generate SHAP explanation for a prediction.
+    Includes robust error handling for IndexError issues.
+    """
+    try:
+        background = np.zeros((1, X_sample.shape[1]))
+        explainer = shap.KernelExplainer(clf.predict_proba, background)
+        shap_values = explainer.shap_values(X_sample, nsamples=100)
         
-    feature_importance.sort(key=lambda x: abs(x['contribution']), reverse=True)
-    
-    # Return top 5 features
-    return feature_importance[:5]
+        probs = clf.predict_proba(X_sample)[0]
+        pred_idx = np.argmax(probs)
+        
+        # Handle different SHAP output formats with safe indexing
+        vals = None
+        if isinstance(shap_values, list):
+            if len(shap_values) == 0:
+                # Empty SHAP values - return default
+                return _default_explanation()
+            
+            # Safe index access
+            safe_idx = min(pred_idx, len(shap_values) - 1)
+            safe_idx = max(0, safe_idx)  # Ensure non-negative
+            
+            if len(shap_values[safe_idx]) > 0:
+                vals = shap_values[safe_idx][0]
+            else:
+                vals = np.zeros(len(feature_names))
+        else:
+            if shap_values is not None and len(shap_values) > 0:
+                vals = shap_values[0]
+            else:
+                vals = np.zeros(len(feature_names))
+        
+        # Validate vals length matches feature_names
+        if vals is None or len(vals) != len(feature_names):
+            print(f"   ⚠️ SHAP length mismatch: {len(vals) if vals is not None else 0} vs {len(feature_names)}")
+            return _default_explanation()
+
+        # Build feature importance list
+        feature_importance = []
+        for name, val in zip(feature_names, vals):
+            scalar_val = safe_scalar(val)
+            feature_importance.append({
+                "name": name,
+                "contribution": round(scalar_val, 4),
+                "impact": "positive" if scalar_val > 0 else "negative"
+            })
+            
+        feature_importance.sort(key=lambda x: abs(x['contribution']), reverse=True)
+        
+        # Return top 5 features
+        return feature_importance[:5]
+        
+    except Exception as e:
+        print(f"   ⚠️ SHAP Error: {e}")
+        return _default_explanation()
+
+
+def _default_explanation():
+    """Return a default explanation when SHAP fails."""
+    return [
+        {"name": "Unknown Feature", "contribution": 0.0, "impact": "neutral"}
+    ]
+
+
+def get_ground_truth_from_filename(filename: str) -> str:
+    """
+    Infer ground truth label from the source filename.
+    Returns 'BENIGN' or 'ATTACK' based on filename patterns.
+    """
+    filename_lower = filename.lower()
+    if 'benign' in filename_lower:
+        return 'BENIGN'
+    else:
+        # Anything else (DDoS, Spoofing, Recon, etc.) is an attack
+        return 'ATTACK'
 
 
 def load_and_mix_traffic():
@@ -179,7 +232,8 @@ def load_and_mix_traffic():
     
     # SHUFFLE for chaos!
     combined_df = combined_df.sample(frac=1, random_state=None).reset_index(drop=True)
-    print("🔀 [INFO] Traffic shuffled randomly for realistic simulation!\n")
+    print("🔀 [INFO] Traffic shuffled randomly for realistic simulation!")
+    print(f"🎯 [INFO] Confidence Threshold: {MIN_CONFIDENCE_THRESHOLD:.0%}\n")
     
     return combined_df
 
@@ -194,13 +248,18 @@ def simulate(target_ip):
     mixed_traffic = load_and_mix_traffic()
     
     print(f"🚀 [INFO] Starting simulation for Device IP: {target_ip}")
-    print("=" * 60)
+    print("=" * 70)
     
+    # Counters
     attack_count = 0
     benign_count = 0
+    suppressed_count = 0  # Low confidence attacks ignored
+    false_positive_count = 0
+    false_negative_count = 0
     
     for index, row in mixed_traffic.iterrows():
         source_file = row.get('_source_file', 'Unknown')
+        ground_truth = get_ground_truth_from_filename(source_file)
         
         try:
             X = preprocess_row(row, label_encoders, feature_names)
@@ -209,16 +268,36 @@ def simulate(target_ip):
             pred_label = label_encoders['Label'].inverse_transform([pred_idx])[0]
             confidence = float(probs[pred_idx])
             
-            # Determine status
-            is_attack = pred_label != "Benign" and confidence > 0.5
+            # Determine if model thinks it's an attack
+            model_says_attack = pred_label != "Benign"
+            
+            # Apply confidence threshold
+            if model_says_attack and confidence < MIN_CONFIDENCE_THRESHOLD:
+                # LOW CONFIDENCE - Suppress alert
+                suppressed_count += 1
+                print(f"🟡 [{source_file}] Packet {index}: {pred_label} ({confidence:.2%}) -> IGNORED (Low Confidence)")
+                time.sleep(BENIGN_DELAY)
+                continue
+            
+            # Final decision
+            is_attack = model_says_attack and confidence >= MIN_CONFIDENCE_THRESHOLD
+            
+            # Ground Truth Validation
+            gt_mismatch = ""
+            if is_attack and ground_truth == 'BENIGN':
+                false_positive_count += 1
+                gt_mismatch = " ❌ FALSE POSITIVE!"
+            elif not is_attack and ground_truth == 'ATTACK':
+                false_negative_count += 1
+                gt_mismatch = " ❌ FALSE NEGATIVE!"
             
             if is_attack:
                 attack_count += 1
                 # Color-coded console output
-                print(f"🔴 [{source_file}] Packet {index}: {pred_label} (Confidence: {confidence:.2%})")
+                print(f"🔴 [{source_file}] Packet {index}: {pred_label} (Confidence: {confidence:.2%}){gt_mismatch}")
                 print("   🚨 ATTACK DETECTED! Generating Alert...")
                 
-                # Generate SHAP explanation
+                # Generate SHAP explanation (with error handling)
                 top_features = generate_shap_explanation(clf, X, feature_names)
                 
                 # Build Mobile-Ready Payload
@@ -246,9 +325,9 @@ def simulate(target_ip):
                 time.sleep(ATTACK_DELAY)
             else:
                 benign_count += 1
-                # Minimal output for benign traffic
-                if index % 50 == 0:  # Show every 50th benign packet
-                    print(f"🟢 [{source_file}] Packet {index}: {pred_label} (Safe)")
+                # Minimal output for benign traffic (every 50th packet)
+                if index % 50 == 0:
+                    print(f"🟢 [{source_file}] Packet {index}: {pred_label} (Safe){gt_mismatch}")
                 time.sleep(BENIGN_DELAY)
                     
         except Exception as e:
@@ -256,11 +335,14 @@ def simulate(target_ip):
             continue
     
     # Summary
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 70)
     print("📊 SIMULATION COMPLETE")
-    print(f"   🔴 Attacks Detected: {attack_count}")
-    print(f"   🟢 Benign Packets: {benign_count}")
-    print(f"   📦 Total Processed: {attack_count + benign_count}")
+    print(f"   🔴 Attacks Sent:       {attack_count}")
+    print(f"   🟢 Benign Packets:     {benign_count}")
+    print(f"   🟡 Suppressed (Low):   {suppressed_count}")
+    print(f"   ❌ False Positives:    {false_positive_count}")
+    print(f"   ❌ False Negatives:    {false_negative_count}")
+    print(f"   📦 Total Processed:    {attack_count + benign_count + suppressed_count}")
 
 
 # ============================================================================
@@ -269,7 +351,7 @@ def simulate(target_ip):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="IoMT Traffic Simulator - Chaos Mode Edition",
+        description="IoMT Traffic Simulator - Chaos Mode Edition v2.0",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
