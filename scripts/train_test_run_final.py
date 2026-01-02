@@ -1,10 +1,11 @@
 """
 train_test_run_5.py
 ========================
-Final Production Pipeline for IoMT IDS (CORRECTED)
-- MQTT Label Fix: Empty strings mapped to 'MQTT'
-- Rate/Variance Cast: Explicit float casting
-- SHAP Fix: max_evals moved to explainer call
+Final Production Pipeline for IoMT IDS
+- Dual-Model Architecture (Binary + Multiclass)
+- Aggressive SMOTE-NC with verification
+- SHAP PartitionExplainer with correlation clustering
+- TabNet with balanced_accuracy metric
 """
 
 import sys
@@ -21,8 +22,6 @@ import seaborn as sns
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.processing.loader import DataLoader
-from pyspark.sql.functions import col, when, lit
-from pyspark.sql.types import FloatType
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.compose import ColumnTransformer
@@ -64,29 +63,6 @@ class FinalProductionPipeline:
         
         if df_spark is None:
             sys.exit(1)
-        
-        # =====================================================
-        # FIX 1: Cast Rate and Variance to FloatType IMMEDIATELY
-        # =====================================================
-        print("  - [FIX] Casting Rate/Variance to FloatType...")
-        if 'Rate' in df_spark.columns:
-            df_spark = df_spark.withColumn("Rate", col("Rate").cast(FloatType()))
-        if 'Variance' in df_spark.columns:
-            df_spark = df_spark.withColumn("Variance", col("Variance").cast(FloatType()))
-        
-        # =====================================================
-        # FIX NEW: Sanitize Infinity values -> Replace with None
-        # =====================================================
-        print("  - [FIX] Sanitizing Infinity values (replacing with None)...")
-        numeric_cols = [f.name for f in df_spark.schema.fields 
-                       if str(f.dataType) in ['FloatType()', 'DoubleType()', 'IntegerType()', 'LongType()']]
-        
-        for c_name in numeric_cols:
-            df_spark = df_spark.withColumn(c_name, 
-                when(col(c_name) == float("inf"), lit(None))
-                .when(col(c_name) == float("-inf"), lit(None))
-                .otherwise(col(c_name))
-            )
             
         print(f"  - Sampling {fraction*100:.0f}% of data...")
         df_sampled = df_spark.sample(withReplacement=False, fraction=fraction, seed=42)
@@ -94,18 +70,7 @@ class FinalProductionPipeline:
         df = df_sampled.toPandas()
         print(f"  - Raw Shape: {df.shape}")
         
-        # =====================================================
-        # FIX 2: Remap Empty Labels to 'MQTT'
-        # =====================================================
-        print("  - [FIX] Remapping empty Labels to 'MQTT'...")
-        # Handle both empty string and NaN
-        df['Label'] = df['Label'].replace('', 'MQTT')
-        df['Label'] = df['Label'].fillna('MQTT')
-        
-        # Show class distribution
-        print(f"  - Label Distribution: {df['Label'].value_counts().to_dict()}")
-        
-        # Anti-Leakage
+        # Aggressive Anti-Leakage
         print("  - [Anti-Leakage] Dropping Forbidden Columns...")
         df.columns = df.columns.str.strip()
         
@@ -119,10 +84,10 @@ class FinalProductionPipeline:
         
         # Mode Imputation
         print("  - [Imputation] Filling NaNs with Mode...")
-        for col_name in df.columns:
-            if df[col_name].isnull().any():
-                mode_val = df[col_name].mode()[0]
-                df[col_name] = df[col_name].fillna(mode_val)
+        for col in df.columns:
+            if df[col].isnull().any():
+                mode_val = df[col].mode()[0]
+                df[col] = df[col].fillna(mode_val)
         
         print(f"  - Cleaned Shape: {df.shape}")
         return df
@@ -136,19 +101,19 @@ class FinalProductionPipeline:
         y_raw = df['Label']
         
         # Identify types
-        numeric_features = X.select_dtypes(include=['int64', 'float64', 'float32']).columns.tolist()
+        numeric_features = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
         categorical_features = X.select_dtypes(include=['object']).columns.tolist()
         
         print(f"  - Numeric: {len(numeric_features)}")
         print(f"  - Categorical: {len(categorical_features)}")
         
         # Safety Check for High Cardinality
-        for col_name in list(categorical_features):
-            unique_count = X[col_name].nunique()
+        for col in list(categorical_features):
+            unique_count = X[col].nunique()
             if unique_count > 50:
-                print(f"  - [WARNING] Dropping high-cardinality: {col_name} ({unique_count})")
-                X = X.drop(columns=[col_name])
-                categorical_features.remove(col_name)
+                print(f"  - [WARNING] Dropping high-cardinality: {col} ({unique_count})")
+                X = X.drop(columns=[col])
+                categorical_features.remove(col)
         
         # Label Encode categorical for SMOTE-NC
         self.categorical_features = categorical_features
@@ -157,10 +122,10 @@ class FinalProductionPipeline:
         print("  - Label Encoding Categorical for SMOTE-NC...")
         self.cat_encoders = {}
         X_encoded = X.copy()
-        for col_name in categorical_features:
+        for col in categorical_features:
             le = LabelEncoder()
-            X_encoded[col_name] = le.fit_transform(X[col_name].astype(str))
-            self.cat_encoders[col_name] = le
+            X_encoded[col] = le.fit_transform(X[col].astype(str))
+            self.cat_encoders[col] = le
             
         self.categorical_indices = [X_encoded.columns.get_loc(c) for c in categorical_features]
         
@@ -176,7 +141,6 @@ class FinalProductionPipeline:
         self.label_encoder_binary.fit(['Benign', 'Attack'])
         
         # Multiclass: Encode all unique labels
-        # Expected: ['Benign', 'DDoS', 'DoS', 'MQTT', 'Recon', 'Spoofing']
         y_multi = self.label_encoder_multi.fit_transform(y_raw)
         
         print(f"  - Binary Classes: [0=Benign, 1=Attack]")
@@ -204,7 +168,7 @@ class FinalProductionPipeline:
         if len(self.categorical_indices) > 0 and SMOTENC:
             smote = SMOTENC(categorical_features=self.categorical_indices, 
                            random_state=42, 
-                           sampling_strategy='auto')
+                           sampling_strategy='auto')  # 'auto' = match majority
             X_res, y_res = smote.fit_resample(X_train, y_train)
         elif SMOTE:
             smote = SMOTE(random_state=42, sampling_strategy='auto')
@@ -277,9 +241,9 @@ class FinalProductionPipeline:
             X_train, y_train,
             eval_set=[(X_train, y_train), (X_val, y_val)],
             eval_name=['train', 'valid'],
-            eval_metric=['balanced_accuracy'],
+            eval_metric=['balanced_accuracy'],  # Use balanced accuracy for imbalanced data
             max_epochs=50,
-            patience=10,
+            patience=10,  # Increased patience
             batch_size=16384,
             virtual_batch_size=1024,
             num_workers=0,
@@ -324,18 +288,15 @@ class FinalProductionPipeline:
             # Sample background data
             X_summary = shap.utils.sample(X_test, 100)
             
-            # =====================================================
-            # FIX 3: Create masker WITHOUT max_evals
-            # =====================================================
-            masker = shap.maskers.Partition(X_summary, clustering="correlation")
+            # Create masker with explicit clustering (FIX for .clustering error)
+            masker = shap.maskers.Partition(X_summary, max_evals=2000, clustering="correlation")
             
             # Initialize PartitionExplainer
             explainer = shap.PartitionExplainer(clf.predict_proba, masker, output_names=class_names)
             
-            # Explain a small sample - apply max_evals HERE
+            # Explain a small sample
             print("  - Calculating SHAP values (15 samples)...")
-            X_shap = X_test[:15]
-            shap_values = explainer(X_shap, max_evals=2000)  # FIX: max_evals here
+            shap_values = explainer(X_test[:15])
             
             # Plot Beeswarm for Attack class (index 1)
             plt.figure()
@@ -367,7 +328,7 @@ class FinalProductionPipeline:
             X_temp, y_b_temp, y_m_temp, test_size=0.5, stratify=y_m_temp, random_state=42
         )
         
-        # 5. SMOTE-NC
+        # 5. SMOTE-NC for Binary
         print("\n" + "="*60)
         print("[STEP 3.5] Applying SMOTE-NC to Training Data")
         print("="*60)
@@ -375,6 +336,7 @@ class FinalProductionPipeline:
         X_train_m_bal, y_train_m_bal = self.apply_smote_nc(X_train, y_m_train, "Multiclass")
         
         # 6. Finalize Features
+        # Convert balanced arrays back to DataFrames for ColumnTransformer
         df_train_b = pd.DataFrame(X_train_b_bal, columns=feature_names_encoded)
         df_train_m = pd.DataFrame(X_train_m_bal, columns=feature_names_encoded)
         df_val = pd.DataFrame(X_val, columns=feature_names_encoded)
