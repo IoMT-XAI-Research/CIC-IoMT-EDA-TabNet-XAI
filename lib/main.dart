@@ -20,6 +20,16 @@ const Color textLight = Color(0xFFE0E0E0);
 const Color textMuted = Color(0xFFAAAAAA);
 const Color accentBlue = Color(0xFF00BFFF);
 
+// =====================================================
+// GLOBAL HELPER: Broad Threat Detection
+// If status is NOT Safe and NOT Benign, it's an attack
+// This handles: "Spoofing", "DDoS", "Botnet", "ATTACK", etc.
+// =====================================================
+bool isDeviceUnderAttack(String? status) {
+  final s = (status ?? 'SAFE').toString().trim().toUpperCase();
+  return s != 'SAFE' && s != 'BENIGN';
+}
+
 //ANA UYGULAMA BAŞLANGICI VE FIREBASE
 
 void main() async {
@@ -821,37 +831,34 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
   }
 
-  // ✅ Backend'teki /devices listesini çek ve id=1'in status'una göre isAlert'i ayarla
+  // ✅ Backend'teki tüm hastane/cihazları tarayarak global saldırı durumunu kontrol et
   Future<void> _checkAttackStatus() async {
     try {
-      // Demo: Fetch hospitals first, pick first one, then check devices.
       final hospitals = await _apiService.getHospitals();
       if (hospitals.isEmpty) return;
 
-      // We could select a specific hospital here if we had state for it
-      // For now just checking the first one as before
-      final devices = await _apiService.getDevices(hospitals[0]['unique_code']);
+      bool anyAttackFound = false;
 
-      // Burada demo için id = 1 cihazı hedef kabul ediyoruz.
-      dynamic target;
-      try {
-        target = devices.firstWhere((d) => d['id'] == 1);
-      } catch (_) {
-        target = null;
-      }
-
-      bool newIsAlert = false;
-      if (target != null) {
-        final status = (target['status'] ?? '').toString().toUpperCase();
-        newIsAlert = status == 'ATTACK';
+      // Scan ALL hospitals and ALL devices
+      for (var hospital in hospitals) {
+        if (!mounted) return;
+        try {
+          final devices = await _apiService.getDevices(hospital['unique_code']);
+          for (var device in devices) {
+            if (isDeviceUnderAttack(device['status'])) {
+              anyAttackFound = true;
+            }
+          }
+        } catch (e) {
+          debugPrint('Error checking hospital ${hospital['unique_code']}: $e');
+        }
       }
 
       if (!mounted) return;
 
-// Yeni helper fonksiyonu kullan
-      _setAlertState(newIsAlert);
+      // Update alert state based on global scan
+      _setAlertState(anyAttackFound);
     } catch (e) {
-      // Demo sırasında ortalığı kirletmemek için sadece logla
       debugPrint('Attack status check error: $e');
     }
   }
@@ -998,13 +1005,68 @@ class DeviceDetailScreen extends StatefulWidget {
 }
 
 class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
+  final ApiService _api = ApiService();
+  late Map<String, dynamic> _device;
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _device = Map<String, dynamic>.from(widget.device);
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    // Immediate first check
+    _fetchDeviceStatus();
+
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      _fetchDeviceStatus();
+    });
+  }
+
+  Future<void> _fetchDeviceStatus() async {
+    try {
+      // Scan all hospitals to find this device by name
+      final hospitals = await _api.getHospitals();
+      for (var hospital in hospitals) {
+        final devices = await _api.getDevices(hospital['unique_code']);
+        final match = devices.firstWhere(
+            (d) => d['name'] == widget.device['name'],
+            orElse: () => null);
+
+        if (match != null) {
+          if (mounted) {
+            setState(() {
+              _device = Map<String, dynamic>.from(match);
+            });
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint("DeviceDetail Poll Error: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final deviceName = widget.device['name'] ?? 'Bilinmiyor';
-    final ip = widget.device['ip_address'] ?? ' - ';
-    final room = widget.device['room_number'] ?? 'Atanmamış';
-    final status = widget.device['status'] ?? 'SAFE';
-    bool isAlert = (status == 'ATTACK');
+    final deviceName = _device['name'] ?? 'Bilinmiyor';
+    final ip = _device['ip_address'] ?? ' - ';
+    final room = _device['room_number'] ?? 'Atanmamış';
+    final rawStatus = _device['status'] ?? 'SAFE';
+    bool isAlert = isDeviceUnderAttack(rawStatus);
+    final displayStatus = rawStatus.toString().trim();
 
     return Scaffold(
       appBar: AppBar(
@@ -1048,12 +1110,12 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
                   ),
                   const SizedBox(height: 15),
                   Text(
-                    isAlert ? 'TEHDİT ALGILANDI' : 'GÜVENLİ',
+                    isAlert ? 'TEHDİT: $displayStatus' : 'GÜVENLİ',
                     style: TextStyle(
                       color: isAlert ? neonRed : neonGreen,
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
+                      letterSpacing: 1.2,
                     ),
                   ),
                   const SizedBox(height: 5),
@@ -1527,8 +1589,7 @@ class AlertPopup extends StatelessWidget {
   final VoidCallback onIsolate;
 
   const AlertPopup({super.key, required this.onIsolate});
-
-  @override
+@override
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: neonRed.withOpacity(0.95),
@@ -1546,13 +1607,44 @@ class AlertPopup extends StatelessWidget {
             style: TextStyle(
                 fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 10),
-          const Text(
-            'Cihaz: Oksijen Sensörü - Oda 302\nSaldırı Türü: DDoS Saldırısı (ML Tespiti)',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, color: Colors.white),
+          
+          // --- YENİ EKLENEN KISIM: DETAY BUTONU ---
+          const SizedBox(height: 25),
+          ElevatedButton(
+            onPressed: () {
+              // DİKKAT: Buraya Alarm Testi (Monitör) ekranının sınıf adını yazmalısın.
+              // Dosyanın en tepesine o ekranı import etmeyi unutma!
+              // Örnek: import 'screens/traffic_monitor_screen.dart';
+              
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MonitoringScreen()), 
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white, // Beyaz fon (Okunaklı olsun)
+              foregroundColor: neonRed,      // Kırmızı yazı
+              elevation: 5,
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.bar_chart, size: 20), // Grafik ikonu yakışır
+                SizedBox(width: 8),
+                Text('Saldırı Detayları',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
+          // ----------------------------------------
+
+          const SizedBox(height: 15),
+          
+          // --- ESKİ BUTON (AYNEN DURUYOR) ---
           ElevatedButton(
             onPressed: onIsolate,
             style: ElevatedButton.styleFrom(
@@ -2037,10 +2129,43 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
 
   String? _userRole;
 
+  // Timer for real-time polling
+  Timer? _pollTimer;
+
   @override
   void initState() {
     super.initState();
     _loadInitialData();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      _refreshDevicesSilently();
+    });
+  }
+
+  // Background refresh without loading spinner
+  Future<void> _refreshDevicesSilently() async {
+    if (_selectedHospitalCode == null) return;
+    try {
+      final devices = await _api.getDevices(_selectedHospitalCode!);
+      if (mounted) {
+        setState(() => _devices = devices);
+      }
+    } catch (e) {
+      debugPrint('Silent refresh error: $e');
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -2238,7 +2363,9 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
                         itemCount: _devices.length,
                         itemBuilder: (ctx, i) {
                           final d = _devices[i];
-                          final isAlert = (d['status'] == 'ATTACK');
+                          final rawStatus = d['status'] ?? 'SAFE';
+                          final isAlert = isDeviceUnderAttack(rawStatus);
+                          final displayStatus = rawStatus.toString().trim();
                           final deviceId = d['id'];
 
                           return Dismissible(
@@ -2306,7 +2433,7 @@ class _DeviceInventoryScreenState extends State<DeviceInventoryScreen> {
                               onTap: () => _navigateToDetail(context, d),
                               child: DeviceItem(
                                 name: d['name'] ?? 'Bilinmeyen Cihaz',
-                                status: isAlert ? 'ATTACK detected' : 'SAFE',
+                                status: isAlert ? displayStatus : 'SAFE',
                                 isAlert: isAlert,
                               ),
                             ),
