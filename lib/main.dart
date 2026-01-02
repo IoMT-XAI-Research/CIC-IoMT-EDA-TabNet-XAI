@@ -2694,11 +2694,17 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
     // Extract Data
     final prediction = _currentData?['prediction'] ?? {};
     final bool isAttack = prediction['is_attack'] ?? false;
-    final double probability = prediction['probability'] ?? 0.0;
+    final double rawProbability = (prediction['probability'] ?? 0.0).toDouble();
     final explanations = _currentData?['explanation'] as List? ?? [];
     final flowDetails = _currentData?['flow_details'] ?? {};
 
-    Color risksColor = _getRiskColor(probability);
+    // Normalize probability: if > 1, assume it's already 0-100 scale
+    final double normalizedProbability =
+        rawProbability > 1 ? rawProbability / 100 : rawProbability;
+    final double displayPercentage =
+        rawProbability > 1 ? rawProbability : rawProbability * 100;
+
+    Color risksColor = _getRiskColor(normalizedProbability);
     String statusText = isAttack ? "KRİTİK TEHDİT ALGILANDI" : "GÜVENLİ TRAFİK";
 
     return Scaffold(
@@ -2751,7 +2757,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                           width: 150,
                           height: 150,
                           child: CircularProgressIndicator(
-                            value: probability,
+                            value: normalizedProbability.clamp(0.0, 1.0),
                             strokeWidth: 15,
                             color: risksColor,
                             backgroundColor: Colors.grey[800],
@@ -2759,12 +2765,12 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                         ),
                         Column(
                           children: [
-                            Text("${(probability * 100).toStringAsFixed(1)}%",
+                            Text("${displayPercentage.toStringAsFixed(1)}%",
                                 style: TextStyle(
                                     fontSize: 32,
                                     fontWeight: FontWeight.bold,
                                     color: risksColor)),
-                            const Text("Risk Skoru",
+                            const Text("Güven Skoru",
                                 style: TextStyle(color: textMuted)),
                           ],
                         )
@@ -2895,7 +2901,10 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                             Text(exp['name'] ?? exp['feature'] ?? 'Unknown',
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold)),
-                            Text("${impact.toStringAsFixed(4)}",
+                            Text(
+                                impact < 0.0001 && impact > 0
+                                    ? "< 0.0001"
+                                    : impact.toStringAsFixed(4),
                                 style: const TextStyle(
                                     fontSize: 12, color: textMuted)),
                           ],
