@@ -253,9 +253,37 @@ def simulate_benign(target_ip):
                     # FALSE POSITIVE! Model thinks it's an attack but it's benign data
                     false_positives += 1
                     print(f"❌ [{source_file}] Packet {index}: {pred_label} ({confidence:.2%}) -> FALSE POSITIVE!")
-                    print("   🚨 Sending FALSE POSITIVE alert to test mobile app...")
                     
+                    # ═══════════════════════════════════════════════════════════════
+                    # DEEP DIVE LOGGER - Analyze WHY the model made this mistake
+                    # ═══════════════════════════════════════════════════════════════
+                    
+                    # 1. Probability Split - Show competition between classes
+                    all_labels = label_encoders['Label'].classes_
+                    prob_pairs = list(zip(all_labels, probs))
+                    prob_pairs.sort(key=lambda x: x[1], reverse=True)
+                    
+                    top1_label, top1_prob = prob_pairs[0]
+                    top2_label, top2_prob = prob_pairs[1] if len(prob_pairs) > 1 else ("N/A", 0.0)
+                    
+                    print(f"   ⚖️  Probability Split: {top1_label}: {top1_prob:.0%} vs {top2_label}: {top2_prob:.0%}")
+                    
+                    # 2. Top 3 Features that caused this decision
                     top_features = generate_shap_explanation(clf, X, feature_names)
+                    
+                    if top_features and len(top_features) >= 3:
+                        f1 = top_features[0]
+                        f2 = top_features[1]
+                        f3 = top_features[2]
+                        print(f"   ❓ Why {pred_label}? 1. {f1['name']} ({f1['contribution']:.2f}) | "
+                              f"2. {f2['name']} ({f2['contribution']:.2f}) | "
+                              f"3. {f3['name']} ({f3['contribution']:.2f})")
+                    elif top_features:
+                        feature_str = " | ".join([f"{i+1}. {f['name']} ({f['contribution']:.2f})" 
+                                                   for i, f in enumerate(top_features[:3])])
+                        print(f"   ❓ Why {pred_label}? {feature_str}")
+                    
+                    print("   🚨 Sending FALSE POSITIVE alert to test mobile app...")
                     
                     payload = {
                         "device_ip": target_ip,
@@ -268,6 +296,10 @@ def simulate_benign(target_ip):
                         },
                         "explanation": top_features,
                         "source_file": source_file,
+                        "probability_split": {
+                            "predicted": {"label": top1_label, "probability": round(top1_prob * 100, 2)},
+                            "runner_up": {"label": top2_label, "probability": round(top2_prob * 100, 2)}
+                        },
                         "message": f"⚠️ FALSE POSITIVE: {pred_label} tespit edildi!"
                     }
                     
