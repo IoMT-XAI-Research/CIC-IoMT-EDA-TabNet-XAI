@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 import '../api_service.dart';
 
 // Assuming basic colors are standard or passed.
@@ -24,10 +25,27 @@ class _RecentEventsListState extends State<RecentEventsList> {
   List<dynamic> _logs = [];
   bool _isLoading = true;
 
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
     _loadLogs();
+    _startAutoRefresh();
+  }
+
+  void _startAutoRefresh() {
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        _loadLogs();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadLogs() async {
