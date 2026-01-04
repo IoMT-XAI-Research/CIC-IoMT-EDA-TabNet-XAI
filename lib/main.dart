@@ -836,6 +836,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
   bool isAlert = false;
   bool _isDialogOpen = false;
+  DateTime? _lastAlertDismissedTime; // Prevent spam
   late AnimationController _controller;
   int _deviceCount = 0;
 
@@ -940,7 +941,33 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (!mounted) return;
 
       // Update alert state based on global scan
-      _setAlertState(anyAttackFound);
+      if (anyAttackFound) {
+        // 1. Ensure Red Alert Mode is ON (for visual circle)
+        if (!isAlert) {
+          setState(() {
+            isAlert = true;
+          });
+        }
+
+        // 2. Check Popup Cooldown
+        bool showPopup = !_isDialogOpen;
+        if (_lastAlertDismissedTime != null) {
+          final diff = DateTime.now().difference(_lastAlertDismissedTime!);
+          if (diff < const Duration(minutes: 1)) {
+            showPopup = false;
+          }
+        }
+
+        // 3. Show Popup if allowed
+        if (showPopup) {
+          _showAttackPopup();
+        }
+      } else {
+        // No attack => Safe Mode
+        if (isAlert) {
+          _setAlertState(false);
+        }
+      }
     } catch (e) {
       debugPrint('Attack status check error: $e');
     }
@@ -953,6 +980,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _showAttackPopup() {
+    if (_isDialogOpen) return;
     _isDialogOpen = true;
 
     showDialog(
@@ -961,12 +989,30 @@ class _DashboardScreenState extends State<DashboardScreen>
       builder: (BuildContext dialogContext) {
         return AlertPopup(
           onIsolate: () {
-            // Kullanıcı butona basınca dialog kapansın
-            _isDialogOpen = false;
+            // Disconnect Action
+            setState(() {
+              _isDialogOpen = false;
+              _lastAlertDismissedTime = DateTime.now();
+              isAlert =
+                  false; // Optionally force safe mode locally or just silence popup
+            });
             Navigator.of(dialogContext).pop();
 
-            // İstersen burada da SAFE’e çekebilirsin:
-            _setAlertState(false);
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text("Bağlantı Kesildi ve Cihaz Engellendi"),
+                backgroundColor: neonRed));
+          },
+          onDetails: () {
+            // Details Action
+            setState(() {
+              _isDialogOpen = false;
+              _lastAlertDismissedTime = DateTime.now();
+            });
+            Navigator.of(dialogContext).pop();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MonitoringScreen()),
+            );
           },
         );
       },
@@ -1687,8 +1733,10 @@ class DeviceItem extends StatelessWidget {
 
 class AlertPopup extends StatelessWidget {
   final VoidCallback onIsolate;
+  final VoidCallback onDetails;
 
-  const AlertPopup({super.key, required this.onIsolate});
+  const AlertPopup(
+      {super.key, required this.onIsolate, required this.onDetails});
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -1711,17 +1759,7 @@ class AlertPopup extends StatelessWidget {
           // --- YENİ EKLENEN KISIM: DETAY BUTONU ---
           const SizedBox(height: 25),
           ElevatedButton(
-            onPressed: () {
-              // DİKKAT: Buraya Alarm Testi (Monitör) ekranının sınıf adını yazmalısın.
-              // Dosyanın en tepesine o ekranı import etmeyi unutma!
-              // Örnek: import 'screens/traffic_monitor_screen.dart';
-
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const MonitoringScreen()),
-              );
-            },
+            onPressed: onDetails,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white, // Beyaz fon (Okunaklı olsun)
               foregroundColor: neonRed, // Kırmızı yazı
