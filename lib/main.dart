@@ -1505,7 +1505,6 @@ class StatusArea extends StatelessWidget {
   Widget build(BuildContext context) {
     // Dynamic Logic
     final Color primaryColor = isAlert ? neonRed : neonGreen;
-    final int score = isAlert ? 45 : 98;
     final String statusLabel = isAlert ? "TEHDİT ALGILANDI" : "SİSTEM GÜVENLİ";
     final String subLabel =
         isAlert ? "System Status: Critical" : "System Status: Secure";
@@ -1551,26 +1550,31 @@ class StatusArea extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Percentage Text
-                      Text(
-                        "$score%",
-                        style: const TextStyle(
-                            fontSize: 64,
-                            fontWeight: FontWeight.bold,
-                            color: textLight,
-                            shadows: [
-                              Shadow(
-                                  color: Colors.black54,
-                                  blurRadius: 4,
-                                  offset: Offset(2, 2))
-                            ]),
+                      // Status Text Inside Circle
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                        child: Text(
+                          statusLabel,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: primaryColor,
+                              shadows: [
+                                Shadow(
+                                    color: primaryColor.withOpacity(0.5),
+                                    blurRadius: 10)
+                              ]),
+                        ),
                       ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        "Güvenlik Skoru",
-                        style: TextStyle(
+                      const SizedBox(height: 8),
+                      Text(
+                        subLabel,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
                           color: textMuted,
-                          fontSize: 14,
-                          letterSpacing: 1.0,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
@@ -1580,26 +1584,7 @@ class StatusArea extends StatelessWidget {
             },
           ),
 
-          const SizedBox(height: 25),
-
-          // STATUS TEXT under the gauge
-          Text(
-            statusLabel,
-            style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
-                letterSpacing: 1.5,
-                shadows: [
-                  Shadow(color: primaryColor.withOpacity(0.5), blurRadius: 10)
-                ]),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            subLabel,
-            style: const TextStyle(
-                color: textMuted, fontSize: 14, fontStyle: FontStyle.italic),
-          ),
+          const SizedBox(height: 10),
         ],
       ),
     );
