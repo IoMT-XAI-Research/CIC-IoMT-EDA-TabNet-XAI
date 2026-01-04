@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/traffic_chart_widget.dart';
+import 'widgets/recent_events_list.dart';
 import 'firebase_options.dart';
 import 'api_service.dart';
 import 'dart:async';
@@ -1037,6 +1038,8 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
             const SizedBox(height: 30),
             const LogVelocityChart(),
+            const SizedBox(height: 20),
+            const RecentEventsList(),
           ],
         ),
       ),

@@ -66,3 +66,20 @@ def get_log_traffic_stats(
     status = "high" if count > 10 else "normal"
     
     return {"count": count, "status": status}
+
+@router.get("/recent", response_model=List[schemas.ActivityLogResponse])
+def get_recent_logs(
+    limit: int = 3,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(dependencies.get_current_user)
+):
+    query = db.query(models.ActivityLog)
+    
+    # Apply Isolation Logic
+    if current_user.hospital_id is not None:
+         query = query.filter(models.ActivityLog.hospital_id == current_user.hospital_id)
+    else:
+         # Unassigned users see System Logs only
+         query = query.filter(models.ActivityLog.hospital_id.is_(None))
+
+    return query.order_by(models.ActivityLog.timestamp.desc()).limit(limit).all()

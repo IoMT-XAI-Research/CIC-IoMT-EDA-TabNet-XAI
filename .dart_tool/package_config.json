@@ -200,6 +200,12 @@
       "languageVersion": "2.12"
     },
     {
+      "name": "intl",
+      "rootUri": "file:///Users/simayavci/.pub-cache/hosted/pub.dev/intl-0.19.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "js",
       "rootUri": "file:///Users/simayavci/.pub-cache/hosted/pub.dev/js-0.6.7",
       "packageUri": "lib/",
@@ -434,7 +440,7 @@
       "languageVersion": "3.5"
     }
   ],
-  "generated": "2026-01-04T17:48:10.127191Z",
+  "generated": "2026-01-04T17:58:31.974197Z",
   "generator": "pub",
   "generatorVersion": "3.5.0",
   "flutterRoot": "file:///Users/simayavci/development/flutter",

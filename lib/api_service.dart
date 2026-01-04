@@ -369,4 +369,25 @@ class ApiService {
       throw Exception('Failed to load stats: ${response.body}');
     }
   }
+
+  Future<List<dynamic>> fetchRecentLogs({int limit = 3}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) throw Exception('No token found');
+
+    final url = Uri.parse('$baseUrl/activity-logs/recent?limit=$limit');
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load recent logs: ${response.body}');
+    }
+  }
 }
