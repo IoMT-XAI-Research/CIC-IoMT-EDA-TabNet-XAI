@@ -60,6 +60,12 @@ def create_hospital(
     db.add(new_hospital)
     db.commit()
     db.refresh(new_hospital)
+
+    # LINK ADMIN TO NEW HOSPITAL (Immediate Restriction)
+    current_user.hospital_id = new_hospital.id
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
     
     # LOGGING (Safe)
     try:
