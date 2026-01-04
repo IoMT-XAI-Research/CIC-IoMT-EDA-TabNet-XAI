@@ -63,7 +63,7 @@ def create_hospital(
     
     # LOGGING (Safe)
     try:
-        create_activity_log(db, "Hastane Eklendi", f"{new_hospital.name} sisteme kaydedildi.", "SUCCESS")
+        create_activity_log(db, "Hastane Eklendi", f"{new_hospital.name} sisteme kaydedildi.", "SUCCESS", hospital_id=new_hospital.id)
     except Exception as e:
         print(f"Logging Error: {e}")
 
@@ -105,10 +105,11 @@ def delete_hospital(
     if db_hospital.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this hospital")
 
+    deleted_hospital_id = db_hospital.id
     db.delete(db_hospital)
     db.commit()
     try:
-        create_activity_log(db, "Hastane Silindi", f"{db_hospital.name} silindi.", "WARNING")
+        create_activity_log(db, "Hastane Silindi", f"{db_hospital.name} silindi.", "WARNING", hospital_id=deleted_hospital_id)
     except Exception as e:
         print(f"Logging Error: {e}")
     return None

@@ -1,0 +1,188 @@
+============================================================
+[STEP 1] Loading & Cleaning Data
+============================================================
+[INFO] Initializing SparkSession...
+WARNING: Using incubator modules: jdk.incubator.vector
+Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/01/03 16:48:18 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[INFO] SparkSession initialized.
+[INFO] Spark Version: 4.1.0
+[INFO] Scanning directory: data/raw/WiFi_and_MQTT...
+[INFO] Found 72 CSV files.
+[INFO] Reading 72 files into Spark DataFrame...
+[INFO] Parsing filenames to extract labels...                                   
+26/01/03 16:49:07 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+  - Shape: (2750665, 40)                                                        
+  - Labels: {'DDoS': 1965913, 'DoS': 719234, 'Recon': 39825, 'Benign': 17096, 'Spoofing': 6577, 'MQTT': 2020}
+
+============================================================
+[STEP 2] One-Hot Encoding
+============================================================
+  - Categorical columns: []
+  - Final feature count: 39
+  - First 10 features: ['Header_Length', 'Protocol Type', 'Time_To_Live', 'Rate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number', 'psh_flag_number', 'ack_flag_number', 'ece_flag_number']
+
+============================================================
+[STEP 3] Stratified Split (70/15/15)
+============================================================
+  - Train: 1925465, Val: 412600, Test: 412600
+
+============================================================
+[STEP 4] Aligning Features
+============================================================
+  - All splits aligned to 39 columns
+
+============================================================
+[STEP 5] Scaling (Fit on Train Only)
+============================================================
+  - Scaler fitted on training data only.
+
+============================================================
+[STEP 6] Computing Class Weights (NO SMOTE)
+============================================================
+
+  [Class Weights for Binary]
+    Classes: [0 1]
+    Weights: {0: 80.44894292638088, 1: 0.5031269956906148}
+
+  [Class Weights for Multiclass]
+    Classes: [0 1 2 3 4 5]
+    Weights: {0: 26.816314308793626, 1: 0.2331965254478896, 2: 0.6374057198396178, 3: 226.9524988213107, 4: 11.511670313639678, 5: 69.70261366927309}
+
+============================================================
+[TRAINING] binary_model
+============================================================
+epoch 0  | loss: 0.07823 | train_balanced_accuracy: 0.98972 | valid_balanced_accuracy: 0.98922 |  0:01:11s
+epoch 1  | loss: 0.02207 | train_balanced_accuracy: 0.99266 | valid_balanced_accuracy: 0.99228 |  0:02:23s
+epoch 2  | loss: 0.01913 | train_balanced_accuracy: 0.99348 | valid_balanced_accuracy: 0.99281 |  0:03:35s
+epoch 3  | loss: 0.0161  | train_balanced_accuracy: 0.99463 | valid_balanced_accuracy: 0.99386 |  0:04:47s
+epoch 4  | loss: 0.01677 | train_balanced_accuracy: 0.99597 | valid_balanced_accuracy: 0.99511 |  0:05:58s
+epoch 5  | loss: 0.01547 | train_balanced_accuracy: 0.9956  | valid_balanced_accuracy: 0.99455 |  0:07:09s
+epoch 6  | loss: 0.01478 | train_balanced_accuracy: 0.9965  | valid_balanced_accuracy: 0.99512 |  0:08:20s
+epoch 7  | loss: 0.01419 | train_balanced_accuracy: 0.99663 | valid_balanced_accuracy: 0.99522 |  0:09:32s
+epoch 8  | loss: 0.01468 | train_balanced_accuracy: 0.99629 | valid_balanced_accuracy: 0.99512 |  0:10:42s
+epoch 9  | loss: 0.01574 | train_balanced_accuracy: 0.99579 | valid_balanced_accuracy: 0.99472 |  0:11:53s
+epoch 10 | loss: 0.01404 | train_balanced_accuracy: 0.99573 | valid_balanced_accuracy: 0.99449 |  0:13:06s
+epoch 11 | loss: 0.0139  | train_balanced_accuracy: 0.99627 | valid_balanced_accuracy: 0.99503 |  0:14:18s
+epoch 12 | loss: 0.01381 | train_balanced_accuracy: 0.99639 | valid_balanced_accuracy: 0.99485 |  0:15:31s
+epoch 13 | loss: 0.01363 | train_balanced_accuracy: 0.99653 | valid_balanced_accuracy: 0.99509 |  0:16:42s
+epoch 14 | loss: 0.01359 | train_balanced_accuracy: 0.99653 | valid_balanced_accuracy: 0.99575 |  0:17:53s
+epoch 15 | loss: 0.01494 | train_balanced_accuracy: 0.99624 | valid_balanced_accuracy: 0.99537 |  0:19:03s
+epoch 16 | loss: 0.0137  | train_balanced_accuracy: 0.99658 | valid_balanced_accuracy: 0.99531 |  0:20:14s
+epoch 17 | loss: 0.01372 | train_balanced_accuracy: 0.9968  | valid_balanced_accuracy: 0.99538 |  0:21:26s
+epoch 18 | loss: 0.01317 | train_balanced_accuracy: 0.99695 | valid_balanced_accuracy: 0.99496 |  0:22:39s
+epoch 19 | loss: 0.01354 | train_balanced_accuracy: 0.99678 | valid_balanced_accuracy: 0.99506 |  0:23:50s
+epoch 20 | loss: 0.01324 | train_balanced_accuracy: 0.99678 | valid_balanced_accuracy: 0.99518 |  0:25:02s
+epoch 21 | loss: 0.01288 | train_balanced_accuracy: 0.99592 | valid_balanced_accuracy: 0.99438 |  0:26:12s
+epoch 22 | loss: 0.01286 | train_balanced_accuracy: 0.99631 | valid_balanced_accuracy: 0.99491 |  0:27:22s
+epoch 23 | loss: 0.01269 | train_balanced_accuracy: 0.99591 | valid_balanced_accuracy: 0.99492 |  0:28:33s
+epoch 24 | loss: 0.01289 | train_balanced_accuracy: 0.99561 | valid_balanced_accuracy: 0.995   |  0:29:43s
+
+Early stopping occurred at epoch 24 with best_epoch = 14 and best_valid_balanced_accuracy = 0.99575
+Successfully saved model at artifacts/binary_model.zip
+  - Saved binary_model.zip
+
+============================================================
+[TRAINING] multiclass_model
+============================================================
+epoch 0  | loss: 0.74501 | train_balanced_accuracy: 0.76575 | valid_balanced_accuracy: 0.76277 |  0:01:11s
+epoch 1  | loss: 0.4466  | train_balanced_accuracy: 0.80819 | valid_balanced_accuracy: 0.79931 |  0:02:23s
+epoch 2  | loss: 0.40551 | train_balanced_accuracy: 0.83375 | valid_balanced_accuracy: 0.82132 |  0:03:35s
+epoch 3  | loss: 0.38591 | train_balanced_accuracy: 0.83394 | valid_balanced_accuracy: 0.82392 |  0:04:46s
+epoch 4  | loss: 0.37392 | train_balanced_accuracy: 0.8303  | valid_balanced_accuracy: 0.81812 |  0:05:59s
+epoch 5  | loss: 0.36592 | train_balanced_accuracy: 0.84795 | valid_balanced_accuracy: 0.83592 |  0:07:11s
+epoch 6  | loss: 0.36393 | train_balanced_accuracy: 0.84221 | valid_balanced_accuracy: 0.8283  |  0:08:23s
+epoch 7  | loss: 0.35642 | train_balanced_accuracy: 0.81536 | valid_balanced_accuracy: 0.803   |  0:09:36s
+epoch 8  | loss: 0.353   | train_balanced_accuracy: 0.83035 | valid_balanced_accuracy: 0.82001 |  0:10:49s
+epoch 9  | loss: 0.34485 | train_balanced_accuracy: 0.85315 | valid_balanced_accuracy: 0.83782 |  0:12:01s
+epoch 10 | loss: 0.33868 | train_balanced_accuracy: 0.85264 | valid_balanced_accuracy: 0.83723 |  0:13:13s
+epoch 11 | loss: 0.34039 | train_balanced_accuracy: 0.85248 | valid_balanced_accuracy: 0.83273 |  0:14:25s
+epoch 12 | loss: 0.33266 | train_balanced_accuracy: 0.83968 | valid_balanced_accuracy: 0.82268 |  0:15:37s
+epoch 13 | loss: 0.33344 | train_balanced_accuracy: 0.84207 | valid_balanced_accuracy: 0.82828 |  0:16:49s
+epoch 14 | loss: 0.32632 | train_balanced_accuracy: 0.82102 | valid_balanced_accuracy: 0.80049 |  0:18:01s
+epoch 15 | loss: 0.32603 | train_balanced_accuracy: 0.86202 | valid_balanced_accuracy: 0.83915 |  0:19:13s
+epoch 16 | loss: 0.32496 | train_balanced_accuracy: 0.86857 | valid_balanced_accuracy: 0.83897 |  0:20:24s
+epoch 17 | loss: 0.31844 | train_balanced_accuracy: 0.85328 | valid_balanced_accuracy: 0.82809 |  0:21:35s
+epoch 18 | loss: 0.32223 | train_balanced_accuracy: 0.84132 | valid_balanced_accuracy: 0.81978 |  0:22:47s
+epoch 19 | loss: 0.31625 | train_balanced_accuracy: 0.86918 | valid_balanced_accuracy: 0.8429  |  0:23:59s
+epoch 20 | loss: 0.31497 | train_balanced_accuracy: 0.8576  | valid_balanced_accuracy: 0.83083 |  0:25:10s
+epoch 21 | loss: 0.31203 | train_balanced_accuracy: 0.85399 | valid_balanced_accuracy: 0.8258  |  0:26:21s
+epoch 22 | loss: 0.31189 | train_balanced_accuracy: 0.83713 | valid_balanced_accuracy: 0.81158 |  0:27:33s
+epoch 23 | loss: 0.3115  | train_balanced_accuracy: 0.86671 | valid_balanced_accuracy: 0.83953 |  0:28:44s
+epoch 24 | loss: 0.31019 | train_balanced_accuracy: 0.87648 | valid_balanced_accuracy: 0.84412 |  0:29:55s
+epoch 25 | loss: 0.31    | train_balanced_accuracy: 0.83095 | valid_balanced_accuracy: 0.81109 |  0:31:07s
+epoch 26 | loss: 0.30569 | train_balanced_accuracy: 0.86103 | valid_balanced_accuracy: 0.83423 |  0:32:18s
+epoch 27 | loss: 0.31463 | train_balanced_accuracy: 0.84715 | valid_balanced_accuracy: 0.82347 |  0:33:29s
+epoch 28 | loss: 0.30499 | train_balanced_accuracy: 0.85028 | valid_balanced_accuracy: 0.82258 |  0:34:40s
+epoch 29 | loss: 0.3052  | train_balanced_accuracy: 0.85985 | valid_balanced_accuracy: 0.8305  |  0:35:52s
+epoch 30 | loss: 0.30787 | train_balanced_accuracy: 0.86309 | valid_balanced_accuracy: 0.83504 |  0:37:02s
+epoch 31 | loss: 0.30528 | train_balanced_accuracy: 0.87325 | valid_balanced_accuracy: 0.84311 |  0:38:14s
+epoch 32 | loss: 0.29901 | train_balanced_accuracy: 0.87541 | valid_balanced_accuracy: 0.84029 |  0:39:25s
+epoch 33 | loss: 0.30176 | train_balanced_accuracy: 0.85457 | valid_balanced_accuracy: 0.82683 |  0:40:36s
+epoch 34 | loss: 0.30057 | train_balanced_accuracy: 0.83534 | valid_balanced_accuracy: 0.81525 |  0:41:47s
+
+Early stopping occurred at epoch 34 with best_epoch = 24 and best_valid_balanced_accuracy = 0.84412
+Successfully saved model at artifacts/multiclass_model.zip
+  - Saved multiclass_model.zip
+
+============================================================
+[EVALUATION] Binary
+============================================================
+              precision    recall  f1-score   support
+
+      Benign       0.48      1.00      0.65      2565
+      Attack       1.00      0.99      1.00    410035
+
+    accuracy                           0.99    412600
+   macro avg       0.74      1.00      0.82    412600
+weighted avg       1.00      0.99      0.99    412600
+
+  >> Balanced Accuracy: 0.9956
+
+============================================================
+[EVALUATION] Multiclass
+============================================================
+              precision    recall  f1-score   support
+
+      Benign       0.55      0.92      0.69      2565
+        DDoS       0.95      0.81      0.87    294887
+         DoS       0.63      0.87      0.73    107885
+        MQTT       0.21      0.86      0.34       303
+       Recon       0.98      0.93      0.96      5974
+    Spoofing       0.58      0.69      0.63       986
+
+    accuracy                           0.83    412600
+   macro avg       0.65      0.85      0.70    412600
+weighted avg       0.86      0.83      0.84    412600
+
+  >> Balanced Accuracy: 0.8463
+
+============================================================
+[SAVING ARTIFACTS] (For simulate_traffic.py)
+============================================================
+  ✓ final_feature_names.pkl (39 columns)
+  ✓ scaler.pkl
+  ✓ final_preprocessor.pkl (same as scaler)
+  ✓ label_encoder_binary.pkl
+  ✓ label_encoder_multiclass.pkl
+  ✓ categorical_columns.pkl ([])
+
+------------------------------------------------------------
+COLUMN MAP FOR INFERENCE:
+------------------------------------------------------------
+Total Columns: 39
+First 20: ['Header_Length', 'Protocol Type', 'Time_To_Live', 'Rate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number', 'psh_flag_number', 'ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'ack_count', 'syn_count', 'fin_count', 'rst_count', 'HTTP', 'HTTPS', 'DNS', 'Telnet', 'SMTP']
+Last 10: ['LLC', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number', 'Variance']
+
+============================================================
+[DONE] Master Pipeline Complete!
+============================================================
+
+To use in simulate_traffic.py:
+  1. Load 'final_feature_names.pkl' to know expected columns
+  2. Create DataFrame with those exact columns
+  3. Apply 'scaler.pkl' to transform
+  4. Run model.predict()
+

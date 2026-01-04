@@ -1,0 +1,375 @@
+[INFO] Loading artifacts...
+  ✓ 39 feature names
+  ✓ Scaler
+  ✓ Label encoder: ['Benign', 'DDoS', 'DoS', 'MQTT', 'Recon', 'Spoofing']
+  ✓ Model loaded
+
+[DATA] Categorized files:
+  - Benign: 1 files
+  - DoS: 6 files
+  - DDoS: 8 files
+  - Recon: 4 files
+  - Spoofing: 1 files
+  - MQTT: 1 files
+
+[LOADING] Loading Benign packets...
+  - Loaded 300 benign packets
+
+[LOADING] Loading DoS packets...
+  - Loaded 96 DoS packets
+
+[LOADING] Loading DDoS packets...
+  - Loaded 96 DDoS packets
+
+[LOADING] Loading Recon packets...
+  - Loaded 100 Recon packets
+
+[LOADING] Loading Spoofing packets...
+  - Loaded 100 Spoofing packets
+
+[LOADING] Loading MQTT packets...
+  - Loaded 100 MQTT packets
+
+======================================================================
+[SIMULATION] Starting Warm-up & Burst Scenario
+======================================================================
+
+======================================================================
+=== PHASE 1: SYSTEM WARM-UP ===
+    100 Benign Packets
+======================================================================
+  [  1] ✅ [ACTUAL: Benign] -> [PRED: Benign] (93%)
+  [  2] ✅ [ACTUAL: Benign] -> [PRED: Benign] (73%)
+  [  3] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (45%) FALSE POSITIVE
+  [  4] ✅ [ACTUAL: Benign] -> [PRED: Benign] (60%)
+  [  5] ✅ [ACTUAL: Benign] -> [PRED: Benign] (85%)
+  [  6] ✅ [ACTUAL: Benign] -> [PRED: Benign] (60%)
+  [  7] ✅ [ACTUAL: Benign] -> [PRED: Benign] (77%)
+  [  8] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [  9] ✅ [ACTUAL: Benign] -> [PRED: Benign] (67%)
+  [ 10] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (49%) FALSE POSITIVE
+  [ 11] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 12] ✅ [ACTUAL: Benign] -> [PRED: Benign] (65%)
+  [ 13] ✅ [ACTUAL: Benign] -> [PRED: Benign] (68%)
+  [ 14] ✅ [ACTUAL: Benign] -> [PRED: Benign] (92%)
+  [ 15] ✅ [ACTUAL: Benign] -> [PRED: Benign] (87%)
+  [ 16] ✅ [ACTUAL: Benign] -> [PRED: Benign] (67%)
+  [ 17] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 18] ✅ [ACTUAL: Benign] -> [PRED: Benign] (67%)
+  [ 19] ✅ [ACTUAL: Benign] -> [PRED: Benign] (94%)
+  [ 20] ✅ [ACTUAL: Benign] -> [PRED: Benign] (79%)
+  [ 21] ✅ [ACTUAL: Benign] -> [PRED: Benign] (64%)
+  [ 22] ✅ [ACTUAL: Benign] -> [PRED: Benign] (90%)
+  [ 23] ✅ [ACTUAL: Benign] -> [PRED: Benign] (59%)
+  [ 24] ✅ [ACTUAL: Benign] -> [PRED: Benign] (57%)
+  [ 25] ✅ [ACTUAL: Benign] -> [PRED: Benign] (77%)
+  [ 26] ✅ [ACTUAL: Benign] -> [PRED: Benign] (64%)
+  [ 27] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+  [ 28] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+  [ 29] ✅ [ACTUAL: Benign] -> [PRED: Benign] (78%)
+  [ 30] ✅ [ACTUAL: Benign] -> [PRED: Benign] (54%)
+  [ 31] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 32] ✅ [ACTUAL: Benign] -> [PRED: Benign] (60%)
+  [ 33] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 34] ✅ [ACTUAL: Benign] -> [PRED: Benign] (75%)
+  [ 35] ✅ [ACTUAL: Benign] -> [PRED: Benign] (67%)
+  [ 36] ✅ [ACTUAL: Benign] -> [PRED: Benign] (71%)
+  [ 37] ✅ [ACTUAL: Benign] -> [PRED: Benign] (69%)
+  [ 38] ✅ [ACTUAL: Benign] -> [PRED: Benign] (82%)
+  [ 39] ✅ [ACTUAL: Benign] -> [PRED: Benign] (62%)
+  [ 40] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (73%) FALSE POSITIVE
+  [ 41] ✅ [ACTUAL: Benign] -> [PRED: Benign] (51%)
+  [ 42] ✅ [ACTUAL: Benign] -> [PRED: Benign] (90%)
+  [ 43] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+  [ 44] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 45] ✅ [ACTUAL: Benign] -> [PRED: Benign] (66%)
+  [ 46] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (55%) FALSE POSITIVE
+  [ 47] ✅ [ACTUAL: Benign] -> [PRED: Benign] (98%)
+  [ 48] ✅ [ACTUAL: Benign] -> [PRED: Benign] (66%)
+  [ 49] ✅ [ACTUAL: Benign] -> [PRED: Benign] (65%)
+  [ 50] ✅ [ACTUAL: Benign] -> [PRED: Benign] (47%)
+  [ 51] ❌ [ACTUAL: Benign] -> [PRED: MQTT] (40%) FALSE POSITIVE
+  [ 52] ✅ [ACTUAL: Benign] -> [PRED: Benign] (49%)
+  [ 53] ✅ [ACTUAL: Benign] -> [PRED: Benign] (65%)
+  [ 54] ✅ [ACTUAL: Benign] -> [PRED: Benign] (70%)
+  [ 55] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+  [ 56] ✅ [ACTUAL: Benign] -> [PRED: Benign] (46%)
+  [ 57] ✅ [ACTUAL: Benign] -> [PRED: Benign] (65%)
+  [ 58] ✅ [ACTUAL: Benign] -> [PRED: Benign] (62%)
+  [ 59] ✅ [ACTUAL: Benign] -> [PRED: Benign] (86%)
+  [ 60] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+  [ 61] ✅ [ACTUAL: Benign] -> [PRED: Benign] (90%)
+  [ 62] ✅ [ACTUAL: Benign] -> [PRED: Benign] (65%)
+  [ 63] ✅ [ACTUAL: Benign] -> [PRED: Benign] (77%)
+  [ 64] ✅ [ACTUAL: Benign] -> [PRED: Benign] (75%)
+  [ 65] ✅ [ACTUAL: Benign] -> [PRED: Benign] (67%)
+  [ 66] ✅ [ACTUAL: Benign] -> [PRED: Benign] (95%)
+  [ 67] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 68] ✅ [ACTUAL: Benign] -> [PRED: Benign] (70%)
+  [ 69] ✅ [ACTUAL: Benign] -> [PRED: Benign] (59%)
+  [ 70] ✅ [ACTUAL: Benign] -> [PRED: Benign] (75%)
+  [ 71] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 72] ✅ [ACTUAL: Benign] -> [PRED: Benign] (64%)
+  [ 73] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 74] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (52%) FALSE POSITIVE
+  [ 75] ✅ [ACTUAL: Benign] -> [PRED: Benign] (66%)
+  [ 76] ✅ [ACTUAL: Benign] -> [PRED: Benign] (78%)
+  [ 77] ✅ [ACTUAL: Benign] -> [PRED: Benign] (62%)
+  [ 78] ✅ [ACTUAL: Benign] -> [PRED: Benign] (85%)
+  [ 79] ✅ [ACTUAL: Benign] -> [PRED: Benign] (58%)
+  [ 80] ✅ [ACTUAL: Benign] -> [PRED: Benign] (67%)
+  [ 81] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 82] ✅ [ACTUAL: Benign] -> [PRED: Benign] (70%)
+  [ 83] ✅ [ACTUAL: Benign] -> [PRED: Benign] (59%)
+  [ 84] ✅ [ACTUAL: Benign] -> [PRED: Benign] (61%)
+  [ 85] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+  [ 86] ✅ [ACTUAL: Benign] -> [PRED: Benign] (70%)
+  [ 87] ✅ [ACTUAL: Benign] -> [PRED: Benign] (46%)
+  [ 88] ✅ [ACTUAL: Benign] -> [PRED: Benign] (49%)
+  [ 89] ✅ [ACTUAL: Benign] -> [PRED: Benign] (62%)
+  [ 90] ✅ [ACTUAL: Benign] -> [PRED: Benign] (93%)
+  [ 91] ✅ [ACTUAL: Benign] -> [PRED: Benign] (68%)
+  [ 92] ✅ [ACTUAL: Benign] -> [PRED: Benign] (62%)
+  [ 93] ✅ [ACTUAL: Benign] -> [PRED: Benign] (73%)
+  [ 94] ✅ [ACTUAL: Benign] -> [PRED: Benign] (59%)
+  [ 95] ✅ [ACTUAL: Benign] -> [PRED: Benign] (79%)
+  [ 96] ✅ [ACTUAL: Benign] -> [PRED: Benign] (61%)
+  [ 97] ❌ [ACTUAL: Benign] -> [PRED: MQTT] (38%) FALSE POSITIVE
+  [ 98] ✅ [ACTUAL: Benign] -> [PRED: Benign] (64%)
+  [ 99] ✅ [ACTUAL: Benign] -> [PRED: Benign] (65%)
+  [100] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+
+======================================================================
+=== PHASE 2: ATTACK WAVE - DoS ===
+    20 DoS + 20 Benign Recovery
+======================================================================
+  [  1] ✅ [ACTUAL: DoS] -> [PRED: DoS] (79%)
+  [  2] ✅ [ACTUAL: DoS] -> [PRED: DoS] (86%)
+  [  3] ✅ [ACTUAL: DoS] -> [PRED: DoS] (80%)
+  [  4] ✅ [ACTUAL: DoS] -> [PRED: DoS] (50%)
+  [  5] ✅ [ACTUAL: DoS] -> [PRED: DoS] (80%)
+  [  6] ✅ [ACTUAL: DoS] -> [PRED: DoS] (75%)
+  [  7] ✅ [ACTUAL: DoS] -> [PRED: DoS] (71%)
+  [  8] ✅ [ACTUAL: DoS] -> [PRED: DoS] (82%)
+  [  9] ✅ [ACTUAL: DoS] -> [PRED: DoS] (72%)
+  [ 10] ✅ [ACTUAL: DoS] -> [PRED: DoS] (87%)
+  [ 11] ✅ [ACTUAL: DoS] -> [PRED: DoS] (86%)
+  [ 12] 🔄 [ACTUAL: DoS] -> [PRED: DDoS] (53%) WRONG TYPE
+  [ 13] ✅ [ACTUAL: DoS] -> [PRED: DoS] (77%)
+  [ 14] ✅ [ACTUAL: DoS] -> [PRED: DoS] (91%)
+  [ 15] ✅ [ACTUAL: DoS] -> [PRED: DoS] (92%)
+  [ 16] ✅ [ACTUAL: DoS] -> [PRED: DoS] (75%)
+  [ 17] ✅ [ACTUAL: DoS] -> [PRED: DoS] (46%)
+  [ 18] 🔄 [ACTUAL: DoS] -> [PRED: DDoS] (90%) WRONG TYPE
+  [ 19] 🔄 [ACTUAL: DoS] -> [PRED: DDoS] (96%) WRONG TYPE
+  [ 20] 🔄 [ACTUAL: DoS] -> [PRED: DDoS] (83%) WRONG TYPE
+  [ 21] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+  [ 22] ✅ [ACTUAL: Benign] -> [PRED: Benign] (53%)
+  [ 23] ✅ [ACTUAL: Benign] -> [PRED: Benign] (78%)
+  [ 24] ✅ [ACTUAL: Benign] -> [PRED: Benign] (37%)
+  [ 25] ✅ [ACTUAL: Benign] -> [PRED: Benign] (46%)
+  [ 26] ✅ [ACTUAL: Benign] -> [PRED: Benign] (51%)
+  [ 27] ✅ [ACTUAL: Benign] -> [PRED: Benign] (68%)
+  [ 28] ✅ [ACTUAL: Benign] -> [PRED: Benign] (44%)
+  [ 29] ✅ [ACTUAL: Benign] -> [PRED: Benign] (62%)
+  [ 30] ✅ [ACTUAL: Benign] -> [PRED: Benign] (59%)
+  [ 31] ❌ [ACTUAL: Benign] -> [PRED: MQTT] (58%) FALSE POSITIVE
+  [ 32] ✅ [ACTUAL: Benign] -> [PRED: Benign] (46%)
+  [ 33] ✅ [ACTUAL: Benign] -> [PRED: Benign] (97%)
+  [ 34] ✅ [ACTUAL: Benign] -> [PRED: Benign] (59%)
+  [ 35] ✅ [ACTUAL: Benign] -> [PRED: Benign] (60%)
+  [ 36] ✅ [ACTUAL: Benign] -> [PRED: Benign] (69%)
+  [ 37] ❌ [ACTUAL: Benign] -> [PRED: DDoS] (40%) FALSE POSITIVE
+  [ 38] ❌ [ACTUAL: Benign] -> [PRED: MQTT] (98%) FALSE POSITIVE
+  [ 39] ✅ [ACTUAL: Benign] -> [PRED: Benign] (60%)
+  [ 40] ✅ [ACTUAL: Benign] -> [PRED: Benign] (90%)
+
+======================================================================
+=== PHASE 2: ATTACK WAVE - DDoS ===
+    20 DDoS + 20 Benign Recovery
+======================================================================
+  [  1] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (90%)
+  [  2] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (91%)
+  [  3] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (91%)
+  [  4] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (90%)
+  [  5] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (91%)
+  [  6] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (88%)
+  [  7] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (90%)
+  [  8] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (92%)
+  [  9] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (90%)
+  [ 10] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (59%)
+  [ 11] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (94%)
+  [ 12] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (89%)
+  [ERROR] Packet 12: Input X contains infinity or a value too large for dtype('float64').
+  [ 14] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (99%)
+  [ 15] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (98%)
+  [ 16] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (95%)
+  [ 17] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (99%)
+  [ 18] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (93%)
+  [ 19] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (62%)
+  [ 20] ✅ [ACTUAL: DDoS] -> [PRED: DDoS] (100%)
+  [ 21] ✅ [ACTUAL: Benign] -> [PRED: Benign] (67%)
+  [ 22] ✅ [ACTUAL: Benign] -> [PRED: Benign] (61%)
+  [ 23] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (81%) FALSE POSITIVE
+  [ 24] ✅ [ACTUAL: Benign] -> [PRED: Benign] (79%)
+  [ 25] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (46%) FALSE POSITIVE
+  [ 26] ✅ [ACTUAL: Benign] -> [PRED: Benign] (64%)
+  [ 27] ✅ [ACTUAL: Benign] -> [PRED: Benign] (85%)
+  [ 28] ✅ [ACTUAL: Benign] -> [PRED: Benign] (59%)
+  [ 29] ✅ [ACTUAL: Benign] -> [PRED: Benign] (85%)
+  [ 30] ✅ [ACTUAL: Benign] -> [PRED: Benign] (77%)
+  [ 31] ❌ [ACTUAL: Benign] -> [PRED: MQTT] (70%) FALSE POSITIVE
+  [ 32] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (49%) FALSE POSITIVE
+  [ 33] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+  [ 34] ✅ [ACTUAL: Benign] -> [PRED: Benign] (67%)
+  [ 35] ✅ [ACTUAL: Benign] -> [PRED: Benign] (69%)
+  [ 36] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 37] ✅ [ACTUAL: Benign] -> [PRED: Benign] (93%)
+  [ 38] ✅ [ACTUAL: Benign] -> [PRED: Benign] (70%)
+  [ 39] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 40] ✅ [ACTUAL: Benign] -> [PRED: Benign] (98%)
+
+======================================================================
+=== PHASE 2: ATTACK WAVE - Recon ===
+    20 Recon + 20 Benign Recovery
+======================================================================
+  [  1] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [  2] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [  3] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [  4] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [  5] ⚠️ [ACTUAL: Recon] -> [PRED: Benign] (47%) MISSED ATTACK
+  [  6] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (71%) WRONG TYPE
+  [  7] ⚠️ [ACTUAL: Recon] -> [PRED: Benign] (50%) MISSED ATTACK
+  [  8] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [  9] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [ 10] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [ 11] ✅ [ACTUAL: Recon] -> [PRED: Recon] (99%)
+  [ 12] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [ 13] ✅ [ACTUAL: Recon] -> [PRED: Recon] (99%)
+  [ 14] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [ 15] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [ 16] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [ 17] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [ 18] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [ 19] 🔄 [ACTUAL: Recon] -> [PRED: Spoofing] (77%) WRONG TYPE
+  [ 20] ⚠️ [ACTUAL: Recon] -> [PRED: Benign] (78%) MISSED ATTACK
+  [ 21] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (57%) FALSE POSITIVE
+  [ 22] ✅ [ACTUAL: Benign] -> [PRED: Benign] (85%)
+  [ 23] ✅ [ACTUAL: Benign] -> [PRED: Benign] (64%)
+  [ 24] ✅ [ACTUAL: Benign] -> [PRED: Benign] (78%)
+  [ 25] ✅ [ACTUAL: Benign] -> [PRED: Benign] (65%)
+  [ 26] ✅ [ACTUAL: Benign] -> [PRED: Benign] (95%)
+  [ 27] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+  [ 28] ✅ [ACTUAL: Benign] -> [PRED: Benign] (84%)
+  [ 29] ✅ [ACTUAL: Benign] -> [PRED: Benign] (58%)
+  [ 30] ✅ [ACTUAL: Benign] -> [PRED: Benign] (58%)
+  [ 31] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 32] ✅ [ACTUAL: Benign] -> [PRED: Benign] (69%)
+  [ 33] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+  [ 34] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 35] ✅ [ACTUAL: Benign] -> [PRED: Benign] (90%)
+  [ 36] ✅ [ACTUAL: Benign] -> [PRED: Benign] (65%)
+  [ 37] ✅ [ACTUAL: Benign] -> [PRED: Benign] (84%)
+  [ 38] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (52%) FALSE POSITIVE
+  [ 39] ✅ [ACTUAL: Benign] -> [PRED: Benign] (69%)
+  [ 40] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+
+======================================================================
+=== PHASE 2: ATTACK WAVE - Spoofing ===
+    20 Spoofing + 20 Benign Recovery
+======================================================================
+  [  1] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [  2] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [  3] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [  4] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [  5] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [  6] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [  7] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [  8] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [  9] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [ 10] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [ 11] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (99%)
+  [ 12] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [ 13] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [ 14] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [ 15] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [ 16] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (98%)
+  [ 17] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [ 18] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [ 19] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [ 20] ✅ [ACTUAL: Spoofing] -> [PRED: Spoofing] (100%)
+  [ 21] ✅ [ACTUAL: Benign] -> [PRED: Benign] (61%)
+  [ 22] ✅ [ACTUAL: Benign] -> [PRED: Benign] (85%)
+  [ 23] ✅ [ACTUAL: Benign] -> [PRED: Benign] (77%)
+  [ 24] ✅ [ACTUAL: Benign] -> [PRED: Benign] (62%)
+  [ 25] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 26] ✅ [ACTUAL: Benign] -> [PRED: Benign] (66%)
+  [ 27] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (55%) FALSE POSITIVE
+  [ 28] ✅ [ACTUAL: Benign] -> [PRED: Benign] (98%)
+  [ 29] ✅ [ACTUAL: Benign] -> [PRED: Benign] (67%)
+  [ 30] ✅ [ACTUAL: Benign] -> [PRED: Benign] (62%)
+  [ 31] ✅ [ACTUAL: Benign] -> [PRED: Benign] (57%)
+  [ 32] ❌ [ACTUAL: Benign] -> [PRED: MQTT] (32%) FALSE POSITIVE
+  [ 33] ✅ [ACTUAL: Benign] -> [PRED: Benign] (84%)
+  [ 34] ✅ [ACTUAL: Benign] -> [PRED: Benign] (66%)
+  [ 35] ✅ [ACTUAL: Benign] -> [PRED: Benign] (94%)
+  [ 36] ✅ [ACTUAL: Benign] -> [PRED: Benign] (64%)
+  [ 37] ✅ [ACTUAL: Benign] -> [PRED: Benign] (89%)
+  [ 38] ✅ [ACTUAL: Benign] -> [PRED: Benign] (56%)
+  [ 39] ✅ [ACTUAL: Benign] -> [PRED: Benign] (94%)
+  [ 40] ✅ [ACTUAL: Benign] -> [PRED: Benign] (79%)
+
+======================================================================
+=== PHASE 2: ATTACK WAVE - MQTT ===
+    20 MQTT + 20 Benign Recovery
+======================================================================
+  [  1] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (67%)
+  [  2] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (86%)
+  [  3] 🔄 [ACTUAL: MQTT] -> [PRED: Spoofing] (51%) WRONG TYPE
+  [  4] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (94%)
+  [  5] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (100%)
+  [  6] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (100%)
+  [  7] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (100%)
+  [  8] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (100%)
+  [  9] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (100%)
+  [ 10] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (100%)
+  [ 11] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (99%)
+  [ 12] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (100%)
+  [ 13] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (100%)
+  [ 14] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (98%)
+  [ 15] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (100%)
+  [ 16] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (99%)
+  [ 17] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (100%)
+  [ 18] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (99%)
+  [ 19] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (100%)
+  [ 20] ✅ [ACTUAL: MQTT] -> [PRED: MQTT] (99%)
+  [ 21] ✅ [ACTUAL: Benign] -> [PRED: Benign] (62%)
+  [ 22] ✅ [ACTUAL: Benign] -> [PRED: Benign] (83%)
+  [ 23] ✅ [ACTUAL: Benign] -> [PRED: Benign] (70%)
+  [ 24] ✅ [ACTUAL: Benign] -> [PRED: Benign] (85%)
+  [ 25] ✅ [ACTUAL: Benign] -> [PRED: Benign] (97%)
+  [ 26] ✅ [ACTUAL: Benign] -> [PRED: Benign] (47%)
+  [ 27] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (49%) FALSE POSITIVE
+  [ 28] ✅ [ACTUAL: Benign] -> [PRED: Benign] (83%)
+  [ 29] ✅ [ACTUAL: Benign] -> [PRED: Benign] (65%)
+  [ 30] ✅ [ACTUAL: Benign] -> [PRED: Benign] (65%)
+  [ 31] ✅ [ACTUAL: Benign] -> [PRED: Benign] (76%)
+  [ 32] ✅ [ACTUAL: Benign] -> [PRED: Benign] (63%)
+  [ 33] ✅ [ACTUAL: Benign] -> [PRED: Benign] (66%)
+  [ 34] ✅ [ACTUAL: Benign] -> [PRED: Benign] (61%)
+  [ 35] ✅ [ACTUAL: Benign] -> [PRED: Benign] (62%)
+  [ 36] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (67%) FALSE POSITIVE
+  [ 37] ✅ [ACTUAL: Benign] -> [PRED: Benign] (65%)
+  [ 38] ❌ [ACTUAL: Benign] -> [PRED: Spoofing] (64%) FALSE POSITIVE
+  [ 39] ✅ [ACTUAL: Benign] -> [PRED: Benign] (59%)
+  [ 40] ✅ [ACTUAL: Benign] -> [PRED: Benign] (85%)
+
+======================================================================
+[SUMMARY]
+======================================================================
+  Total:         299
+  ✅ Correct:     255 (85.3%)
+  ❌ False Pos:   21 (7.0%)
+  ⚠️ Missed:      3 (1.0%)
+  🔄 Wrong Type:  20 (6.7%)
+

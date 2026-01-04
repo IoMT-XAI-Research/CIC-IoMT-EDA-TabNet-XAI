@@ -181,14 +181,25 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _hospitalCodeController = TextEditingController();
   String? _errorText;
   bool _isLoading = false;
   bool _isPasswordVisible = false;
 
+  // Role Selection
+  String _selectedRole = 'TECH_STAFF'; // Default
+
   Future<void> _signUp() async {
+    // Basic Validation
     if (_emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
-      setState(() => _errorText = 'Lütfen tüm alanları doldurun.');
+      setState(() => _errorText = 'Lütfen e-posta ve şifre girin.');
+      return;
+    }
+
+    if (_selectedRole == 'TECH_STAFF' &&
+        _hospitalCodeController.text.trim().isEmpty) {
+      setState(() => _errorText = 'Personel için Hastane Kodu zorunludur.');
       return;
     }
 
@@ -198,36 +209,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
 
     try {
-      final userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      await ApiService().register(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
+        role: _selectedRole,
+        hospitalCode: _selectedRole == 'TECH_STAFF'
+            ? _hospitalCodeController.text.trim()
+            : null,
       );
-
-      await userCredential.user?.sendEmailVerification();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                'Kayıt Başarılı! Doğrulama e-postası ${userCredential.user!.email!} adresine gönderildi.'),
+            content: const Text('Kayıt Başarılı! Lütfen giriş yapın.'),
             backgroundColor: neonGreen,
           ),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(); // Return to Login Screen
       }
-    } on FirebaseAuthException catch (e) {
+    } catch (e) {
       if (mounted) {
         setState(() {
-          if (e.code == 'weak-password') {
-            _errorText = 'Şifre çok zayıf (min. 6 karakter).';
-          } else if (e.code == 'email-already-in-use') {
-            _errorText = 'Bu e-posta adresi zaten kullanımda.';
-          } else if (e.code == 'invalid-email') {
-            _errorText = 'Geçersiz e-posta formatı.';
-          } else {
-            _errorText = 'Kayıt Hatası: ${e.message}';
-          }
+          _errorText =
+              'Kayıt Hatası: ${e.toString().replaceAll("Exception: ", "")}';
         });
       }
     } finally {
@@ -237,6 +241,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
         });
       }
     }
+  }
+
+  Widget _buildRoleCard(String title, String role, IconData icon) {
+    final isSelected = _selectedRole == role;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedRole = role;
+          _errorText = null;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? neonGreen.withOpacity(0.2) : cardColor,
+          border: Border.all(
+            color: isSelected ? neonGreen : Colors.transparent,
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: isSelected ? neonGreen : textMuted, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? neonGreen : textMuted,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -255,6 +295,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
           children: <Widget>[
             Icon(Icons.person_add, size: 60, color: neonGreen),
             const SizedBox(height: 30),
+
+            // Role Selection
+            const Text(
+              "Rol Seçimi",
+              style: TextStyle(color: textLight, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 15),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildRoleCard(
+                      "Teknik Personel", "TECH_STAFF", Icons.engineering),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: _buildRoleCard(
+                      "Yönetici (Admin)", "ADMIN", Icons.admin_panel_settings),
+                ),
+              ],
+            ),
+            const SizedBox(height: 30),
+
             if (_errorText != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 15),
@@ -264,6 +327,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   textAlign: TextAlign.center,
                 ),
               ),
+
+            // Email & Password
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
@@ -296,6 +361,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               style: const TextStyle(color: textLight),
             ),
+
+            // Conditional Hospital Code
+            if (_selectedRole == 'TECH_STAFF') ...[
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _hospitalCodeController,
+                decoration: const InputDecoration(
+                  labelText: 'Hastane Kodu',
+                  prefixIcon: Icon(Icons.local_hospital, color: textMuted),
+                  helperText: "Yöneticinizden aldığınız kod",
+                  helperStyle: TextStyle(color: textMuted),
+                ),
+                style: const TextStyle(color: textLight),
+              ),
+            ],
+
             const SizedBox(height: 40),
             _isLoading
                 ? const Center(
@@ -1589,7 +1670,7 @@ class AlertPopup extends StatelessWidget {
   final VoidCallback onIsolate;
 
   const AlertPopup({super.key, required this.onIsolate});
-@override
+  @override
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: neonRed.withOpacity(0.95),
@@ -1607,7 +1688,7 @@ class AlertPopup extends StatelessWidget {
             style: TextStyle(
                 fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          
+
           // --- YENİ EKLENEN KISIM: DETAY BUTONU ---
           const SizedBox(height: 25),
           ElevatedButton(
@@ -1615,15 +1696,16 @@ class AlertPopup extends StatelessWidget {
               // DİKKAT: Buraya Alarm Testi (Monitör) ekranının sınıf adını yazmalısın.
               // Dosyanın en tepesine o ekranı import etmeyi unutma!
               // Örnek: import 'screens/traffic_monitor_screen.dart';
-              
+
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const MonitoringScreen()), 
+                MaterialPageRoute(
+                    builder: (context) => const MonitoringScreen()),
               );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white, // Beyaz fon (Okunaklı olsun)
-              foregroundColor: neonRed,      // Kırmızı yazı
+              foregroundColor: neonRed, // Kırmızı yazı
               elevation: 5,
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
               shape: RoundedRectangleBorder(
@@ -1636,14 +1718,15 @@ class AlertPopup extends StatelessWidget {
                 Icon(Icons.bar_chart, size: 20), // Grafik ikonu yakışır
                 SizedBox(width: 8),
                 Text('Saldırı Detayları',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ],
             ),
           ),
           // ----------------------------------------
 
           const SizedBox(height: 15),
-          
+
           // --- ESKİ BUTON (AYNEN DURUYOR) ---
           ElevatedButton(
             onPressed: onIsolate,

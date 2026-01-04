@@ -22,6 +22,42 @@ class ApiService {
     }
   }
 
+  Future<void> register({
+    required String email,
+    required String password,
+    required String role,
+    String? hospitalCode,
+  }) async {
+    final url = Uri.parse('$baseUrl/auth/register');
+    print('Attempting registration to: $url');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          'role': role,
+          'hospital_code': hospitalCode,
+        }),
+      );
+
+      print('Register Response Status: ${response.statusCode}');
+      print('Register Response Body: ${response.body}');
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final error = jsonDecode(response.body)['detail'];
+        throw Exception(error ?? 'Registration failed');
+      }
+    } catch (e) {
+      print('Register Error: $e');
+      rethrow;
+    }
+  }
+
   Future<void> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/login');
     print('Attempting login to: $url');
