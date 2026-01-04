@@ -166,3 +166,5 @@ tmp/
 temp/
 *.tmp
 *.temp
+macos/Pods/
+macos/Flutter/ephemeral/
