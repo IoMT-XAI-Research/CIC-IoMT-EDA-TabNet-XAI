@@ -1007,7 +1007,16 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: textMuted),
-            onPressed: () => FirebaseAuth.instance.signOut(),
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
           ),
         ],
       ),
@@ -1263,14 +1272,44 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
 
 // 11. AYARLAR EKRANI
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final userEmail = user?.email ?? 'Bilinmiyor';
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
 
+class _SettingsScreenState extends State<SettingsScreen> {
+  String _userEmail = 'Yükleniyor...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserEmail();
+  }
+
+  Future<void> _loadUserEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _userEmail = prefs.getString('user_email') ?? 'Bilinmiyor';
+      });
+    }
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Uygulama Ayarları',
@@ -1287,17 +1326,16 @@ class SettingsScreen extends StatelessWidget {
             SettingsItem(
               icon: Icons.person_outline,
               title: 'Giriş Yapan E-posta',
-              subtitle: userEmail,
+              subtitle: _userEmail,
             ),
             SettingsItem(
               icon: Icons.vpn_key,
               title: 'Şifreyi Değiştir',
               onTap: () {
-                FirebaseAuth.instance.sendPasswordResetEmail(email: userEmail);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                       content: Text(
-                          '$userEmail adresine şifre sıfırlama bağlantısı gönderildi.'),
+                          '$_userEmail adresine şifre sıfırlama bağlantısı gönderildi. (Demo)'),
                       backgroundColor: accentBlue),
                 );
               },
@@ -1335,7 +1373,7 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 50),
             Center(
               child: TextButton.icon(
-                onPressed: () => FirebaseAuth.instance.signOut(),
+                onPressed: _logout,
                 icon: const Icon(Icons.logout, color: neonRed),
                 label: const Text('Oturumu Kapat',
                     style:

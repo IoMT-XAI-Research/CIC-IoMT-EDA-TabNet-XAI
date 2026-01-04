@@ -87,6 +87,7 @@ class ApiService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', token);
         await prefs.setString('user_role', role);
+        await prefs.setString('user_email', email); // Save email for display
         print('Token and Role ($role) saved successfully');
       } else {
         throw Exception('Failed to login: ${response.body}');
