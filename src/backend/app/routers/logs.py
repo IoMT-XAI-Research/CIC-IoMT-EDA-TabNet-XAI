@@ -28,8 +28,8 @@ def get_activity_logs(
     # If Admin, show all. If User, show only their hospital's logs + general logs (hospital_id is None)
     query = db.query(models.ActivityLog)
     
-    # REFRESH USER to get latest hospital_id
-    db.refresh(current_user)
+    # FIX: Re-fetch the user within the current session to ensure persistence and get latest data
+    current_user = db.query(models.User).filter(models.User.id == current_user.id).first()
 
     # STRICT ISOLATION LOGIC
     if current_user.hospital_id is not None:

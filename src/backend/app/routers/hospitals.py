@@ -60,6 +60,15 @@ def create_hospital(
     db.add(new_hospital)
     db.commit()
     db.refresh(new_hospital)
+
+    # FIX: Link the current Admin user to the new hospital immediately.
+    # We use a fresh query to avoid "Instance not persistent" session errors.
+    admin_user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    if admin_user:
+        admin_user.hospital_id = new_hospital.id
+        db.add(admin_user)
+        db.commit()
+        db.refresh(admin_user)
     
     # LOGGING (Safe)
     try:
