@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'widgets/traffic_chart_widget.dart';
 import 'firebase_options.dart';
 import 'api_service.dart';
 import 'dart:async';
@@ -1035,15 +1036,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               ],
             ),
             const SizedBox(height: 30),
-            const Text('Hızlı Erişim',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: textLight)),
-            const Divider(color: cardColor, thickness: 2),
-            const SizedBox(height: 15),
-
-            // Demo statik liste yerine dinamik inventory ekranına yönlendirme
+            const LogVelocityChart(),
           ],
         ),
       ),

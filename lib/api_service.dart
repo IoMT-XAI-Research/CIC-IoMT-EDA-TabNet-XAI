@@ -349,4 +349,24 @@ class ApiService {
       throw Exception('Failed to isolate device: ${response.body}');
     }
   }
+
+  Future<Map<String, dynamic>> getLogTrafficStats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) throw Exception('No token found');
+
+    final url = Uri.parse('$baseUrl/activity-logs/stats/traffic');
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load stats: ${response.body}');
+    }
+  }
 }

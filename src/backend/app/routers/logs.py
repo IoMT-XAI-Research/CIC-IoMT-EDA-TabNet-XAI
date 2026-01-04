@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime, timedelta
 from .. import models, schemas, database, dependencies
 
 router = APIRouter(
@@ -41,3 +42,27 @@ def get_activity_logs(
         query = query.filter(models.ActivityLog.hospital_id.is_(None))
     
     return query.order_by(models.ActivityLog.timestamp.desc()).limit(limit).all()
+
+@router.get("/stats/traffic")
+def get_log_traffic_stats(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(dependencies.get_current_user)
+):
+    # Count logs created in the last 5 seconds
+    cutoff_time = datetime.utcnow() - timedelta(seconds=5)
+    
+    query = db.query(models.ActivityLog).filter(models.ActivityLog.timestamp >= cutoff_time)
+    
+    # Apply Isolation Logic to ensure stats reflect what the user CAN see
+    if current_user.hospital_id is not None:
+         query = query.filter(models.ActivityLog.hospital_id == current_user.hospital_id)
+    else:
+         # Unassigned users see System Logs only
+         query = query.filter(models.ActivityLog.hospital_id.is_(None))
+
+    count = query.count()
+    
+    # Threshold for "Attack" simulation
+    status = "high" if count > 10 else "normal"
+    
+    return {"count": count, "status": status}
