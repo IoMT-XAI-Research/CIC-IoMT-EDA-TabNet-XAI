@@ -32,12 +32,13 @@ def get_activity_logs(
     db.refresh(current_user)
 
     # STRICT ISOLATION LOGIC
-    if current_user.hospital_id is not None:
-        # User is assigned to a specific hospital -> SEE ONLY THAT HOSPITAL'S LOGS
-        query = query.filter(models.ActivityLog.hospital_id == current_user.hospital_id)
-    else:
-        # User is NOT assigned to a hospital (Global Admin or Unassigned)
-        # MUST NOT see logs from other hospitals. Only see System Logs (where hospital_id is NULL).
-        query = query.filter(models.ActivityLog.hospital_id.is_(None))
+    if current_user.hospital_id is None:
+        # User is NOT assigned to a specific hospital (Brand new Admin or Global Agent)
+        # STRICT RULE: Return EMPTY list to prevent data leaks.
+        # They must participate in a hospital to see logs.
+        return []
+
+    # User IS assigned to a hospital -> SEE ONLY THAT HOSPITAL'S LOGS
+    query = query.filter(models.ActivityLog.hospital_id == current_user.hospital_id)
     
     return query.order_by(models.ActivityLog.timestamp.desc()).limit(limit).all()
