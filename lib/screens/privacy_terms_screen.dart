@@ -27,32 +27,45 @@ class PrivacyTermsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSection(
-              "1. Giriş",
-              "Bu uygulama (IoMT IDS), Tıbbi Nesnelerin İnterneti (IoMT) cihazlarınızın güvenliğini sağlamak için geliştirilmiştir. Uygulamayı kullanarak aşağıdaki şartları kabul etmiş olursunuz.",
+            const Text(
+              "KULLANIM KOŞULLARI VE GİZLİLİK POLİTİKASI",
+              style: TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.bold, color: neonGreen),
+              textAlign: TextAlign.center,
             ),
-            _buildSection(
-              "2. Veri Güvenliği",
-              "Kullanıcı verileri, en son şifreleme standartları kullanılarak korunmaktadır. Sistem, cihazlarınızdan gelen ağ trafiğini analiz eder ancak kişisel sağlık verilerinizi (PHI) toplamaz veya üçüncü taraflarla paylaşmaz. Tüm analizler anonimleştirilmiş trafik verileri üzerinden yapılır.",
-            ),
-            _buildSection(
-              "3. Kullanım Şartları",
-              "Uygulamanın sağladığı güvenlik uyarıları bilgilendirme amaçlıdır. Sistem %100 koruma garantisi vermez. Kritik altyapılarınızda ek güvenlik önlemleri almanız önerilir. Uygulamanın kötüye kullanımı, tersine mühendislik yapılması veya yetkisiz erişim denemeleri yasaktır.",
-            ),
-            _buildSection(
-              "4. Sorumluluk Reddi",
-              "Geliştirici ekip, uygulamanın kullanımı sırasında oluşabilecek doğrudan veya dolaylı zararlardan (veri kaybı, cihaz arızası vb.) sorumlu tutulamaz. Kullanıcı, sistemi kendi sorumluluğunda kullanır.",
-            ),
-            _buildSection(
-              "5. İletişim",
-              "Gizlilik politikası veya kullanım şartları ile ilgili sorularınız için bizimle iletişime geçebilirsiniz.\nE-posta: support@iomtsescurity.com",
-            ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 8),
             const Center(
               child: Text(
-                "Son Güncelleme: 05 Ocak 2026",
+                "Son Güncelleme: 05.01.2026",
                 style: TextStyle(color: textMuted, fontStyle: FontStyle.italic),
               ),
+            ),
+            const SizedBox(height: 25),
+            _buildSection(
+              "1. GENEL HÜKÜMLER",
+              "İşbu Kullanım Koşulları ve Gizlilik Politikası (\"Sözleşme\"), TÜBİTAK projesi kapsamında geliştirilen \"IoMT Saldırı Tespit Sistemi\" (\"Uygulama\") kullanıcısı ile geliştirici ekip arasındaki yasal hak ve yükümlülükleri belirler. Uygulamayı indirerek veya kullanarak, bu sözleşmenin tamamını okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan edersiniz.",
+            ),
+            _buildSection(
+              "2. VERİ GİZLİLİĞİ VE KVKK AYDINLATMA METNİ",
+              "Uygulama, Tıbbi Nesnelerin İnterneti (IoMT) cihazlarınızın ağ trafiğini analiz etmek amacıyla çalışır.\n\n"
+                  "• Veri İşleme: Sistem, saldırı tespiti yapabilmek için ağ paketlerini (packet sniffing) analiz eder. Bu veriler yalnızca anomali tespiti amacıyla işlenir.\n\n"
+                  "• Kişisel Sağlık Verileri (PHI): Uygulama, hastaların kimlik bilgilerini veya doğrudan tıbbi kayıtlarını sunuculara kaydetmez. Analiz edilen veriler, anonimleştirilmiş ağ trafik öznitelikleridir.\n\n"
+                  "• Üçüncü Taraflar: Toplanan anonim teknik veriler, akademik araştırma ve sistem iyileştirme amaçları dışında üçüncü taraflarla paylaşılmaz.",
+            ),
+            _buildSection(
+              "3. YAPAY ZEKA VE SORUMLULUK REDDİ (DISCLAIMER)",
+              "Bu sistem, Derin Öğrenme (Deep Learning) ve Makine Öğrenmesi (TabNet/XAI) algoritmaları kullanılarak geliştirilmiştir.\n\n"
+                  "• Karar Destek Sistemi: Uygulama bir \"karar destek sistemi\" niteliğindedir. Sağlanan güvenlik skorları ve saldırı alarmları olasılıksal temellere dayanır.\n\n"
+                  "• Garanti Yoktur: Algoritmalar %100 doğruluk oranı vaat etmez. Yanlış Pozitif (False Positive) veya Yanlış Negatif (False Negative) sonuçlar oluşabilir.\n\n"
+                  "• Kullanıcı Sorumluluğu: Bu uygulama, profesyonel siber güvenlik donanımlarının veya uzman denetiminin yerini alamaz. Kritik tıbbi altyapılarda tek güvenlik önlemi olarak kullanılmamalıdır.",
+            ),
+            _buildSection(
+              "4. TELİF HAKLARI VE FİKRİ MÜLKİYET",
+              "Uygulamanın kaynak kodları, kullanılan yapay zeka modelleri ve arayüz tasarımları proje ekibine aittir. İzinsiz kopyalanması, tersine mühendislik (reverse engineering) yapılması veya ticari amaçla dağıtılması yasaktır.",
+            ),
+            _buildSection(
+              "5. İLETİŞİM",
+              "Güvenlik açığı bildirimleri veya hukuki sorularınız için proje ekibiyle iletişime geçebilirsiniz.\n(E-posta: simayavci2022@gmail.com - emirsozeres@gmail.com)",
             ),
             const SizedBox(height: 20),
           ],
