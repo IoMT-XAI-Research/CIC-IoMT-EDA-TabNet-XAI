@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/traffic_chart_widget.dart';
 import 'widgets/recent_events_list.dart';
+import 'screens/privacy_terms_screen.dart'; // import new screen
 import 'firebase_options.dart';
 import 'api_service.dart';
 import 'dart:async';
@@ -953,7 +954,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         bool showPopup = !_isDialogOpen;
         if (_lastAlertDismissedTime != null) {
           final diff = DateTime.now().difference(_lastAlertDismissedTime!);
-          if (diff < const Duration(minutes: 1)) {
+          if (diff < const Duration(minutes: 10)) {
             showPopup = false;
           }
         }
@@ -988,20 +989,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return AlertPopup(
-          onIsolate: () {
-            // Disconnect Action
-            setState(() {
-              _isDialogOpen = false;
-              _lastAlertDismissedTime = DateTime.now();
-              isAlert =
-                  false; // Optionally force safe mode locally or just silence popup
-            });
-            Navigator.of(dialogContext).pop();
-
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text("Bağlantı Kesildi ve Cihaz Engellendi"),
-                backgroundColor: neonRed));
-          },
           onDetails: () {
             // Details Action
             setState(() {
@@ -1409,7 +1396,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsItem(
               icon: Icons.gavel,
               title: 'Gizlilik ve Şartlar',
-              onTap: () {/* Yönlendirme eklenebilir */},
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => const PrivacyTermsScreen()));
+              },
             ),
 
             const SizedBox(height: 50),
@@ -1732,11 +1722,9 @@ class DeviceItem extends StatelessWidget {
 }
 
 class AlertPopup extends StatelessWidget {
-  final VoidCallback onIsolate;
   final VoidCallback onDetails;
 
-  const AlertPopup(
-      {super.key, required this.onIsolate, required this.onDetails});
+  const AlertPopup({super.key, required this.onDetails});
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -1783,19 +1771,7 @@ class AlertPopup extends StatelessWidget {
           // ----------------------------------------
 
           const SizedBox(height: 15),
-
-          // --- ESKİ BUTON (AYNEN DURUYOR) ---
-          ElevatedButton(
-            onPressed: onIsolate,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: darkBackground,
-              foregroundColor: neonRed,
-              side: const BorderSide(color: neonRed, width: 2),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            ),
-            child: const Text('Bağlantıyı Kes ve Durdur',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
+          // Disconnect button removed as per request
         ],
       ),
     );
