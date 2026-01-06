@@ -330,16 +330,16 @@ def generate_dual_xai(packet_raw, pred_label, intelligence):
    human_name = descriptions.get(critical_feature, critical_feature.replace('_', ' ').title())
   
    if max_deviation > 5:
-       severity = "extreme"
+       severity = "ekstremdir"
        factor = int(max_deviation)
    elif max_deviation > 2:
-       severity = "high"
+       severity = "yüksektir"
        factor = int(max_deviation)
    else:
-       severity = "irregular"
+       severity = "düzensizdir"
        factor = 2
   
-   doctor_msg = f"The {human_name} is {severity}. It is {factor}x higher than normal patient monitoring traffic."
+   doctor_msg = f"{human_name} son derece {severity}. Normal hasta izleme trafiğine kıyasla {factor}x kat daha fazladır."
   
    # Admin View (Technical)
    rank = list(importance.keys()).index(critical_feature) + 1 if critical_feature in importance else None

@@ -2937,7 +2937,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
     final bool isAttack = prediction['is_attack'] ?? false;
     final double rawProbability = (prediction['probability'] ?? 0.0).toDouble();
     final explanations = _currentData?['explanation'] as List? ?? [];
-    final flowDetails = _currentData?['flow_details'] ?? {};
+    final trafficData = _currentData?['traffic_data'] ?? {};
 
     // Normalize probability: if > 1, assume it's already 0-100 scale
     final double normalizedProbability =
@@ -3172,7 +3172,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                   );
                 },
               ),
-            ] else if (_isConnected) ...[
+            ] else if (_isConnected && !isAttack) ...[
               const Center(
                   child: Padding(
                 padding: EdgeInsets.all(20.0),
@@ -3191,18 +3191,49 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 title: const Text("📡 Ağ Trafik Detayları"),
                 children: [
                   Container(
-                    height: 200,
+                    height: 250,
                     decoration: BoxDecoration(
                         color: Colors.black26,
                         borderRadius: BorderRadius.circular(8)),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(10),
-                      child: Text(jsonEncode(flowDetails),
-                          style: const TextStyle(
-                              fontFamily: 'Courier',
-                              color: textLight,
-                              fontSize: 12)),
-                    ),
+                    child: trafficData.isNotEmpty
+                        ? ListView.builder(
+                            padding: const EdgeInsets.all(10),
+                            itemCount: trafficData.length,
+                            itemBuilder: (context, index) {
+                              String key = trafficData.keys.elementAt(index);
+                              var value = trafficData[key];
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        key,
+                                        style: const TextStyle(
+                                            color: textLight, fontSize: 13),
+                                      ),
+                                    ),
+                                    Text(
+                                      value.toString(),
+                                      style: const TextStyle(
+                                          color: textMuted,
+                                          fontFamily: 'Courier',
+                                          fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          )
+                        : const Center(
+                            child: Text(
+                              "Veri bekleniyor...",
+                              style: TextStyle(color: textMuted),
+                            ),
+                          ),
                   )
                 ],
               ),
