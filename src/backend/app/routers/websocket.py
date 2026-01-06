@@ -83,9 +83,12 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
 
 @router.post("/internal/report-attack")
 async def report_attack(
-    payload: dict,
+    request_data: schemas.AttackNotification,
     db: Session = Depends(dependencies.get_db)
 ):
+    # Compatibility: Convert Pydantic model to dict so existing code using payload.get() works
+    payload = request_data.model_dump()
+    
     hospital_id = payload.get("hospital_id")
     device_id = payload.get("device_id")
     

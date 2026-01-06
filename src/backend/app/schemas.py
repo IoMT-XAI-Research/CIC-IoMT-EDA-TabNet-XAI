@@ -111,3 +111,14 @@ class ActivityLogResponse(ActivityLogBase):
     timestamp: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class AttackNotification(BaseModel):
+    hospital_id: Optional[int] = None
+    device_id: Optional[int] = None
+    device_ip: Optional[str] = None
+    attack_type: Optional[str] = None
+    prediction: Dict[str, Any]
+    xai: Optional[Dict[str, Any]] = None
+    traffic_data: Optional[Dict[str, Any]] = None
+    flow_details: Optional[Dict[str, Any]] = None
+    device_name: Optional[str] = None

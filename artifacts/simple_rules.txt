@@ -1,0 +1,25 @@
+SIMPLE IF-THEN RULES (For Doctors/Techs)
+============================================================
+
+|--- Rate <= -0.13
+|   |--- fin_flag_number <= -0.13
+|   |   |--- Number <= -2.43
+|   |   |   |--- class: DoS
+|   |   |--- Number >  -2.43
+|   |   |   |--- class: DoS
+|   |--- fin_flag_number >  -0.13
+|   |   |--- IAT <= -0.00
+|   |   |   |--- class: DDoS
+|   |   |--- IAT >  -0.00
+|   |   |   |--- class: DDoS
+|--- Rate >  -0.13
+|   |--- Tot sum <= -1.06
+|   |   |--- Time_To_Live <= -0.12
+|   |   |   |--- class: Recon
+|   |   |--- Time_To_Live >  -0.12
+|   |   |   |--- class: Recon
+|   |--- Tot sum >  -1.06
+|   |   |--- ack_count <= 0.17
+|   |   |   |--- class: DDoS
+|   |   |--- ack_count >  0.17
+|   |   |   |--- class: DDoS

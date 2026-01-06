@@ -1249,8 +1249,6 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
-
             // 2. Device Information Card (New)
             Container(
               width: double.infinity,
@@ -3209,6 +3207,89 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 20),
+            if (isAttack && _currentData?['xai'] != null) ...[
+              const Text(
+                "🧠 Yapay Zeka Analizi (XAI)",
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: textLight),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: neonGreen.withOpacity(0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.health_and_safety,
+                            color: neonGreen, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Doktor Görüşü",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: neonGreen,
+                                      fontSize: 16)),
+                              const SizedBox(height: 4),
+                              Text(
+                                _currentData!['xai']['tech_view'] ??
+                                    "Analiz bulunamadı.",
+                                style: const TextStyle(
+                                    color: textLight, height: 1.4),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12.0),
+                      child: Divider(color: textMuted),
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.terminal, color: accentBlue, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Teknik Analiz",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: accentBlue,
+                                      fontSize: 16)),
+                              const SizedBox(height: 4),
+                              Text(
+                                _currentData!['xai']['admin_view'] ??
+                                    "Teknik detay yok.",
+                                style: const TextStyle(
+                                    color: textMuted,
+                                    fontFamily: 'Courier',
+                                    fontSize: 13,
+                                    height: 1.4),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
