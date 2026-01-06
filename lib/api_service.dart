@@ -98,6 +98,32 @@ class ApiService {
     }
   }
 
+  Future<void> forgotPassword(String email) async {
+    final url = Uri.parse('$baseUrl/auth/forgot-password');
+    print('Attempting forgot password to: $url');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+        }),
+      );
+
+      print('Forgot Password Response Status: ${response.statusCode}');
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to send reset email: ${response.body}');
+      }
+    } catch (e) {
+      print('Forgot Password Error: $e');
+      rethrow;
+    }
+  }
+
   Future<List<dynamic>> getDevices(String hospitalUniqueCode) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');

@@ -604,7 +604,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _emailSent = false;
 
   Future<void> _sendPasswordReset() async {
-    if (_emailController.text.trim().isEmpty) {
+    print("DEBUG: _sendPasswordReset called");
+    final email = _emailController.text.trim();
+    print("DEBUG: Email input is: $email");
+
+    if (email.isEmpty) {
       setState(() => _errorText = 'Lütfen tüm alanları doldurun.');
       return;
     }
@@ -616,23 +620,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: _emailController.text.trim(),
-      );
+      print("DEBUG: Calling ApiService().forgotPassword...");
+      // Use ApiService instead of Firebase
+      final api = ApiService();
+      await api.forgotPassword(email);
+      print("DEBUG: API Call Finished Successfully");
 
       if (mounted) {
         setState(() {
           _emailSent = true;
         });
       }
-    } on FirebaseAuthException catch (e) {
+    } catch (e) {
+      print("ERROR: API Call Failed: $e");
       if (mounted) {
         setState(() {
-          if (e.code == 'user-not-found' || e.code == 'invalid-email') {
-            _errorText = 'Kullanıcı bulunamadı veya e-posta hatalı.';
-          } else {
-            _errorText = 'Hata: ${e.message}';
-          }
+          _errorText = 'Hata: $e';
         });
       }
     } finally {
