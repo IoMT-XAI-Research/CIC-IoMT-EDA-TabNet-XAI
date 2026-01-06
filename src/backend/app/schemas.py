@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import List, Optional, Dict, Any
 from .models import UserRole, DeviceStatus, EventType
 from datetime import datetime
@@ -122,3 +122,13 @@ class AttackNotification(BaseModel):
     traffic_data: Optional[Dict[str, Any]] = None
     flow_details: Optional[Dict[str, Any]] = None
     device_name: Optional[str] = None
+
+class PasswordResetRequest(BaseModel):
+    token: str
+    new_password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(PasswordResetRequest):
+    pass
