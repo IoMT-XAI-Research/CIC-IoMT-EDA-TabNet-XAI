@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -162,7 +163,7 @@ def get_reset_password_page(request: Request, token: str):
     """
     return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
 
-@router.post("/reset-password-confirm")
+@router.post("/reset-password", response_class=HTMLResponse)
 async def reset_password_confirm(
     request: Request,
     token: str = Form(...),

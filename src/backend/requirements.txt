@@ -11,3 +11,6 @@ joblib
 scikit-learn
 numpy
 pandas
+jinja2
+python-multipart
+pydantic-settings
