@@ -1065,12 +1065,35 @@ class _DashboardScreenState extends State<DashboardScreen>
           children: <Widget>[
             StatusArea(isAlert: isAlert, controller: _controller),
             const SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                InfoCard(title: 'Toplam Cihaz', value: '$_deviceCount'),
-                const InfoCard(title: '24s Olağandışı Trafik', value: '0'),
-              ],
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white12),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 8,
+                      offset: Offset(0, 4))
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Toplam Cihaz',
+                      style: TextStyle(
+                          color: textMuted,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500)),
+                  Text('$_deviceCount',
+                      style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: neonGreen)),
+                ],
+              ),
             ),
             const SizedBox(height: 30),
             const LogVelocityChart(),
