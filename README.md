@@ -37,7 +37,7 @@ Model, ağ trafiğini aşağıdaki **6 sınıf** altında doğrudan sınıfland�
 ## 🏗️ Proje Mimarisi
 
 <p align="center">
-  <img src="project_architecture.png" width="800"/>
+  <img src="" width="800"/>
 </p>
 
 ---
