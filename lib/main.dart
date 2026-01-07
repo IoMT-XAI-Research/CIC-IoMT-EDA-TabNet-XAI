@@ -957,7 +957,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         bool showPopup = !_isDialogOpen;
         if (_lastAlertDismissedTime != null) {
           final diff = DateTime.now().difference(_lastAlertDismissedTime!);
-          if (diff < const Duration(minutes: 10)) {
+          if (diff < const Duration(minutes: 60)) {
             showPopup = false;
           }
         }
