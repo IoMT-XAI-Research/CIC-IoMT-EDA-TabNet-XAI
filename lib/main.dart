@@ -574,7 +574,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: const Text(
                   'Hala hesabın yok mu? Üye Ol',
                   style: TextStyle(
-                    color: accentBlue,
+                    color: neonGreen,
                     fontWeight: FontWeight.bold,
                     decoration: TextDecoration.underline,
                   ),
