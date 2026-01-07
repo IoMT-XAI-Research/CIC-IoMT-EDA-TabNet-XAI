@@ -1362,11 +1362,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.vpn_key,
               title: 'Şifreyi Değiştir',
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text(
-                          '$_userEmail adresine şifre sıfırlama bağlantısı gönderildi. (Demo)'),
-                      backgroundColor: accentBlue),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ForgotPasswordScreen()),
                 );
               },
             ),
