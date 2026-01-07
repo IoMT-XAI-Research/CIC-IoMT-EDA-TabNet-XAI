@@ -30,7 +30,7 @@ Model, ağ trafiğini aşağıdaki **6 sınıf** altında doğrudan sınıfland�
 - **Dataset**: CIC-IoMT-2024  
 - **Kaynak**: https://www.unb.ca/cic/datasets/iomt-dataset-2024.html  
 - **Format**: CSV   
-- **Not**: Veri seti büyük olduğu için repoya eklenmemiştir. İlgili bağlantıya buradan ulaşabilirsiniz: 
+- **Not**: Veri seti büyük olduğu için repoya eklenmemiştir.
 
 ---
 
